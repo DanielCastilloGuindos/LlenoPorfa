@@ -19,7 +19,7 @@
       }
     }
   ],
-  "regions": ["cdg1", "fra1"],
+  "regions": ["cdg1"],
   "routes": [
     {
       "src": "/api/stations",
