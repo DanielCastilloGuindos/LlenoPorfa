@@ -1,9 +1,31 @@
 use std::collections::HashSet;
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 use serde::Deserialize;
+use tokio::sync::RwLock;
+
+use crate::error::ApiError;
 use crate::models::{FuelPrices, Station};
 
-pub const MITECO_URL: &str =
+pub const MITECO_URL_PRIMARY: &str =
     "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/";
+
+pub const MITECO_URL_SECONDARY: &str =
+    "https://energia.serviciosmin.gob.es/ServiciosRestCarburantes/PreciosCarburantes/EstacionesTerrestres/";
+
+const CACHE_TTL_SECS: u64 = 900; // 15 minutes
+
+#[derive(Clone)]
+struct CachedDataset {
+    stations: Vec<Station>,
+    fetched_at: Instant,
+}
+
+static IN_MEMORY_CACHE: OnceLock<RwLock<Option<CachedDataset>>> = OnceLock::new();
+
+fn get_cache() -> &'static RwLock<Option<CachedDataset>> {
+    IN_MEMORY_CACHE.get_or_init(|| RwLock::new(None))
+}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct MitecoEnvelope {
@@ -82,7 +104,6 @@ pub fn normalize_brand(raw: &str) -> String {
     if trimmed.is_empty() {
         return "INDEPENDIENTE".to_string();
     }
-    // Capitalize first letters or keep well known brands tidy
     let upper = trimmed.to_uppercase();
     if upper.contains("REPSOL") {
         "Repsol".to_string()
@@ -107,27 +128,72 @@ pub fn normalize_brand(raw: &str) -> String {
     } else if upper.contains("EROSKI") {
         "Eroski".to_string()
     } else {
-        // Return title-cased if all uppercase, or as is
         trimmed.to_string()
     }
 }
 
-/// Fetches raw MITECO dataset.
-pub async fn fetch_raw_miteco() -> Result<MitecoEnvelope, reqwest::Error> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()?;
+/// Builds a hardened reqwest client tailored for government SSL endpoints.
+fn build_http_client() -> Result<reqwest::Client, ApiError> {
+    reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (compatible; llenoPorfa/1.0)")
+        .danger_accept_invalid_certs(true)
+        .timeout(Duration::from_secs(12))
+        .connect_timeout(Duration::from_secs(5))
+        .build()
+        .map_err(|e| ApiError::Internal(format!("Failed to build HTTP client: {}", e)))
+}
 
-    let res = client
-        .get(MITECO_URL)
+/// Fetches raw JSON envelope from a given URL.
+async fn fetch_from_url(client: &reqwest::Client, url: &str) -> Result<MitecoEnvelope, ApiError> {
+    let response = client
+        .get(url)
         .header("Accept", "application/json")
-        .header("User-Agent", "llenoPorfa-Vercel-Engine/1.0")
         .send()
-        .await?
-        .json::<MitecoEnvelope>()
-        .await?;
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                ApiError::UpstreamTimeout(format!("Timeout connecting to {}: {}", url, e))
+            } else {
+                ApiError::UpstreamUnavailable(format!("Network error from {}: {}", url, e))
+            }
+        })?;
 
-    Ok(res)
+    if !response.status().is_success() {
+        return Err(ApiError::UpstreamUnavailable(format!(
+            "Upstream endpoint {} responded with status {}",
+            url,
+            response.status()
+        )));
+    }
+
+    let envelope = response.json::<MitecoEnvelope>().await.map_err(|e| {
+        ApiError::ParseError(format!(
+            "Failed to parse MITECO JSON payload from {}: {}",
+            url, e
+        ))
+    })?;
+
+    Ok(envelope)
+}
+
+/// Fetches raw MITECO dataset attempting primary endpoint with automatic fallback to secondary.
+pub async fn fetch_raw_miteco() -> Result<MitecoEnvelope, ApiError> {
+    let client = build_http_client()?;
+
+    // 1. Try primary MITECO URL
+    match fetch_from_url(&client, MITECO_URL_PRIMARY).await {
+        Ok(envelope) => Ok(envelope),
+        Err(primary_err) => {
+            // 2. Fallback to secondary MITECO URL
+            match fetch_from_url(&client, MITECO_URL_SECONDARY).await {
+                Ok(envelope) => Ok(envelope),
+                Err(secondary_err) => Err(ApiError::UpstreamUnavailable(format!(
+                    "All MITECO endpoints failed. Primary error: [{}]. Secondary fallback error: [{}]",
+                    primary_err, secondary_err
+                ))),
+            }
+        }
+    }
 }
 
 /// Transforms raw MITECO records into normalized `Station` domain structs.
@@ -177,6 +243,54 @@ pub fn normalize_stations(raw_list: Vec<MitecoRawStation>) -> Vec<Station> {
             })
         })
         .collect()
+}
+
+/// Retrieves stations with in-memory caching (TTL 15 min / 900s).
+/// In hot lambdas, returns instantly from RAM.
+/// If upstream fails but existing cached data is present, serves it as a resilient fallback.
+pub async fn get_cached_or_fetch_stations() -> Result<Vec<Station>, ApiError> {
+    let cache = get_cache();
+
+    // Fast path: valid read cache
+    {
+        let read = cache.read().await;
+        if let Some(entry) = read.as_ref() {
+            if entry.fetched_at.elapsed() < Duration::from_secs(CACHE_TTL_SECS) {
+                return Ok(entry.stations.clone());
+            }
+        }
+    }
+
+    // Slow path: fetch from MITECO with fallback
+    let raw_result = fetch_raw_miteco().await;
+
+    match raw_result {
+        Ok(envelope) => {
+            let normalized = normalize_stations(envelope.lista_eess_precio);
+            if normalized.is_empty() {
+                return Err(ApiError::ParseError(
+                    "MITECO returned 0 valid stations in geography".to_string(),
+                ));
+            }
+
+            let mut write = cache.write().await;
+            *write = Some(CachedDataset {
+                stations: normalized.clone(),
+                fetched_at: Instant::now(),
+            });
+            Ok(normalized)
+        }
+        Err(err) => {
+            // Degraded recovery: if upstream failed but we have stale cache, serve it
+            let read = cache.read().await;
+            if let Some(entry) = read.as_ref() {
+                if !entry.stations.is_empty() {
+                    return Ok(entry.stations.clone());
+                }
+            }
+            Err(err)
+        }
+    }
 }
 
 /// Collects all unique popular brands from normalized stations.

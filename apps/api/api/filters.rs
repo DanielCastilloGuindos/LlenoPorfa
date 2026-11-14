@@ -1,5 +1,8 @@
 use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
-use api_lib::models::{FiltersResponse, FuelOption, SortOption};
+use api_lib::{
+    error::ApiError,
+    models::{FiltersResponse, FuelOption, SortOption},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -13,7 +16,12 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
             .header("Access-Control-Allow-Origin", "*")
             .header("Access-Control-Allow-Methods", "GET, OPTIONS")
             .header("Access-Control-Allow-Headers", "Content-Type")
-            .body(Body::Empty)?);
+            .body(Body::Empty)
+            .unwrap_or_else(|_| Response::new(Body::Empty)));
+    }
+
+    if req.method() != "GET" {
+        return Ok(ApiError::MethodNotAllowed.into_response());
     }
 
     let fuels = vec![
@@ -82,12 +90,22 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
         sort_options,
     };
 
-    let body_str = serde_json::to_string(&res)?;
+    let body_str = match serde_json::to_string(&res) {
+        Ok(s) => s,
+        Err(e) => {
+            return Ok(ApiError::Internal(format!("Failed to serialize filters: {}", e)).into_response());
+        }
+    };
 
-    Ok(Response::builder()
+    let response = Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "application/json; charset=utf-8")
         .header("Access-Control-Allow-Origin", "*")
         .header("Cache-Control", "public, s-maxage=900, stale-while-revalidate=300")
-        .body(Body::from(body_str))?)
+        .body(Body::from(body_str))
+        .unwrap_or_else(|_| {
+            ApiError::Internal("Failed to construct HTTP response".to_string()).into_response()
+        });
+
+    Ok(response)
 }

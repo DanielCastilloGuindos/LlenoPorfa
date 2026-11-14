@@ -132,7 +132,14 @@ export function useStations() {
 
       const res = await fetch(`/api/stations?${params.toString()}`);
       if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}`);
+        let msg = `HTTP error ${res.status}`;
+        try {
+          const errPayload = await res.json();
+          if (errPayload && errPayload.error) {
+            msg = errPayload.error;
+          }
+        } catch (_) {}
+        throw new Error(msg);
       }
 
       const data: StationsApiResponse = await res.json();

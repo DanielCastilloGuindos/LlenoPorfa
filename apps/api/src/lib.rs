@@ -1,3 +1,4 @@
+pub mod error;
 pub mod haversine;
 pub mod models;
 pub mod miteco;

@@ -50,17 +50,40 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+        .then(async (networkResponse) => {
+          // If successful 200, cache it
+          if (networkResponse && networkResponse.ok) {
             const responseToCache = networkResponse.clone();
             caches.open(API_CACHE_NAME).then((cache) => {
               cache.put(request, responseToCache);
             });
+            return networkResponse;
           }
+
+          // If upstream/server error (500, 502, 504), check if we have cached data to serve as fallback
+          if (networkResponse && networkResponse.status >= 500) {
+            const cachedResponse = await caches.match(request);
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            if (url.pathname.includes('/api/stations')) {
+              const apiCache = await caches.open(API_CACHE_NAME);
+              const keys = await apiCache.keys();
+              for (const key of keys) {
+                if (key.url.includes('/api/stations')) {
+                  const fallbackStationRes = await apiCache.match(key);
+                  if (fallbackStationRes) return fallbackStationRes;
+                }
+              }
+            }
+            // No cache available: pass through original server error response (e.g. 502 with JSON error body)
+            return networkResponse;
+          }
+
           return networkResponse;
         })
         .catch(async () => {
-          // Network failed: search in API cache or return matching cache entry
+          // Network failed (offline / network error)
           const cachedResponse = await caches.match(request);
           if (cachedResponse) {
             return cachedResponse;
@@ -76,13 +99,16 @@ self.addEventListener('fetch', (event) => {
           }
           return new Response(
             JSON.stringify({
-              error: 'Offline',
+              ok: false,
+              code: 'OFFLINE',
+              error: 'Sin conexión a internet (modo offline)',
               offline: true,
               stations: [],
               count: 0,
             }),
             {
-              headers: { 'Content-Type': 'application/json' },
+              status: 503,
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
             }
           );
         })
