@@ -322,7 +322,69 @@ watch(
         </div>
       </div>
 
-      <!-- Where does your money go in this station? Contextual Breakdown -->
+      <!-- Schedule & Distance -->
+      <div class="meta-section">
+        <div class="meta-box">
+          <Clock :size="16" class="meta-icon" />
+          <div class="meta-info">
+            <span class="meta-label">Horario:</span>
+            <span class="meta-val">{{ station.schedule || 'Consultar en estación' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Direct GPS Navigation Logos -->
+      <div class="gps-navigation-section">
+        <span class="section-heading">Abrir en navegador GPS</span>
+        <div class="direct-nav-logos">
+          <a
+            :href="googleMapsUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="direct-nav-logo"
+            title="Abrir en Google Maps"
+            aria-label="Google Maps"
+            @click="handleNavClick('google_maps')"
+          >
+            <GoogleMapsIcon :size="44" />
+          </a>
+
+          <a
+            :href="wazeUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="direct-nav-logo"
+            title="Abrir en Waze"
+            aria-label="Waze"
+            @click="handleNavClick('waze')"
+          >
+            <WazeIcon :size="44" />
+          </a>
+
+          <a
+            :href="appleMapsUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="direct-nav-logo"
+            title="Abrir en Apple Maps"
+            aria-label="Apple Maps"
+            @click="handleNavClick('apple_maps')"
+          >
+            <AppleMapsIcon :size="44" />
+          </a>
+        </div>
+      </div>
+
+      <!-- Relative position interactive mini-map (moved below GPS navigation) -->
+      <div class="minimap-container">
+        <StationDetailMiniMap
+          :station="station"
+          :user-coords="locationState.coords"
+          @open-on-map="emit('open-on-map', $event)"
+        />
+      </div>
+
+      <!-- Where does your money go in this station? Contextual Breakdown (moved below the map) -->
       <div v-if="stationBreakdown" class="station-money-breakdown">
         <div
           class="breakdown-header"
@@ -401,68 +463,6 @@ watch(
             Margen de esta estación: <strong>en línea con la media</strong>.
           </span>
         </div>
-      </div>
-
-      <!-- Schedule & Distance -->
-      <div class="meta-section">
-        <div class="meta-box">
-          <Clock :size="16" class="meta-icon" />
-          <div class="meta-info">
-            <span class="meta-label">Horario:</span>
-            <span class="meta-val">{{ station.schedule || 'Consultar en estación' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Direct GPS Navigation Logos -->
-      <div class="gps-navigation-section">
-        <span class="section-heading">Abrir en navegador GPS</span>
-        <div class="direct-nav-logos">
-          <a
-            :href="googleMapsUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="direct-nav-logo"
-            title="Abrir en Google Maps"
-            aria-label="Google Maps"
-            @click="handleNavClick('google_maps')"
-          >
-            <GoogleMapsIcon :size="44" />
-          </a>
-
-          <a
-            :href="wazeUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="direct-nav-logo"
-            title="Abrir en Waze"
-            aria-label="Waze"
-            @click="handleNavClick('waze')"
-          >
-            <WazeIcon :size="44" />
-          </a>
-
-          <a
-            :href="appleMapsUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="direct-nav-logo"
-            title="Abrir en Apple Maps"
-            aria-label="Apple Maps"
-            @click="handleNavClick('apple_maps')"
-          >
-            <AppleMapsIcon :size="44" />
-          </a>
-        </div>
-      </div>
-
-      <!-- Relative position interactive mini-map (moved below GPS navigation) -->
-      <div class="minimap-container">
-        <StationDetailMiniMap
-          :station="station"
-          :user-coords="locationState.coords"
-          @open-on-map="emit('open-on-map', $event)"
-        />
       </div>
     </div>
   </div>
