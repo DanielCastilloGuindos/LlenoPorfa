@@ -2,28 +2,64 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Dev: All (Client + Mock API)",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "bun run dev:all"
-    },
-    {
-      "name": "Dev: Client (Astro + Vue)",
+      "name": "Dev: Client (Web/PWA - Port 3000)",
       "type": "node-terminal",
       "request": "launch",
       "command": "bun run dev"
     },
     {
-      "name": "Dev: Bun API Server",
+      "name": "Dev: Manager Dashboard (Port 3001)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev:manager"
+    },
+    {
+      "name": "Dev: Bun API Mock Server",
       "type": "node-terminal",
       "request": "launch",
       "command": "bun run dev:api"
     },
     {
-      "name": "Vercel Dev (Full Serverless Emulation)",
+      "name": "Dev: Client + Mock API",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev:all"
+    },
+    {
+      "name": "Dev: Full Monorepo (Client + Manager + API)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev:full"
+    },
+    {
+      "name": "Vercel Dev (Serverless Rust + Frontends)",
       "type": "node-terminal",
       "request": "launch",
       "command": "vercel dev"
+    },
+    {
+      "name": "Capacitor: Sync Mobile Assets",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun --filter @llenoporfa/client cap:sync"
+    },
+    {
+      "name": "Capacitor: Open Android Studio",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun --filter @llenoporfa/client cap:android"
+    },
+    {
+      "name": "Cargo: Check Workspace (Rust Backends)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "cargo check --workspace"
+    },
+    {
+      "name": "Cargo: Test Workspace",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "cargo test --workspace"
     }
   ]
 }

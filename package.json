@@ -7,9 +7,12 @@
   ],
   "scripts": {
     "dev": "bun --filter @llenoporfa/client dev",
+    "dev:manager": "bun --filter @llenoporfa/manager dev",
     "dev:api": "bun run apps/api/dev-server.ts",
     "dev:all": "concurrently \"bun run apps/api/dev-server.ts\" \"bun --filter @llenoporfa/client dev\"",
+    "dev:full": "concurrently \"bun run apps/api/dev-server.ts\" \"bun --filter @llenoporfa/client dev\" \"bun --filter @llenoporfa/manager dev\"",
     "build": "bun --filter @llenoporfa/client build",
+    "build:all": "bun --filter @llenoporfa/client build && bun --filter @llenoporfa/manager build",
     "preview": "bun --filter @llenoporfa/client preview"
   },
   "devDependencies": {
