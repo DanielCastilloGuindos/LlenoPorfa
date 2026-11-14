@@ -9,9 +9,13 @@ import {
   ChevronDown,
   X,
   Check,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-vue-next';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
+import { useMarket } from '../composables/useMarket';
 import { useHaptics } from '../composables/useHaptics';
 
 const emit = defineEmits<{
@@ -21,6 +25,7 @@ const emit = defineEmits<{
 const { locationState, requestCurrentLocation, setManualLocation, popularLocations } =
   useGeolocation();
 const { localFilterText, fetchStations } = useStations();
+const { marketData, crudePriceFormatted, delta7dFormatted, openBarometer } = useMarket();
 const { light, medium, success } = useHaptics();
 
 const showCityModal = ref(false);
@@ -54,9 +59,27 @@ const openSaveModal = () => {
     <div class="header-top-bar">
       <!-- Location Selector Pill -->
       <button class="location-pill" @click="showCityModal = true; light()">
-        <MapPin :size="16" class="location-icon" />
+        <MapPin :size="15" class="location-icon" />
         <span class="location-name">{{ locationState.name }}</span>
-        <ChevronDown :size="14" class="chevron-icon" />
+        <ChevronDown :size="13" class="chevron-icon" />
+      </button>
+
+      <!-- Crude Barometer Quick Indicator Pill -->
+      <button
+        v-if="marketData"
+        class="crude-pill"
+        @click="openBarometer(); light()"
+        title="Abrir Barómetro del Crudo e Impuestos"
+        aria-label="Abrir Barómetro del Crudo e Impuestos"
+      >
+        <span class="crude-icon">🛢️</span>
+        <span class="crude-text">Crudo: <strong>{{ crudePriceFormatted }}€</strong></span>
+        <span class="crude-trend" :class="marketData.trend">
+          <TrendingUp v-if="marketData.trend === 'rising'" :size="11" />
+          <TrendingDown v-else-if="marketData.trend === 'falling'" :size="11" />
+          <Minus v-else :size="11" />
+          <span>{{ delta7dFormatted }}</span>
+        </span>
       </button>
 
       <div class="header-actions">
@@ -187,6 +210,70 @@ const openSaveModal = () => {
   .chevron-icon {
     color: var(--text-muted);
     flex-shrink: 0;
+  }
+}
+
+.crude-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-surface-subtle);
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  min-height: 40px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: #f59e0b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+  }
+
+  .crude-icon {
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+
+  .crude-text {
+    font-weight: 500;
+    color: var(--text-muted);
+
+    strong {
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-weight: 800;
+    }
+  }
+
+  .crude-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+
+    &.rising {
+      color: #ef4444;
+    }
+    &.falling {
+      color: #10b981;
+    }
+    &.stable {
+      color: var(--text-muted);
+    }
+  }
+
+  @media (max-width: 420px) {
+    padding: 5px 8px;
+    .crude-text {
+      display: none;
+    }
   }
 }
 

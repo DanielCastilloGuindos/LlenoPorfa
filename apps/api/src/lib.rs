@@ -2,6 +2,7 @@ pub mod error;
 pub mod haversine;
 pub mod models;
 pub mod miteco;
+pub mod market;
 
 use std::cmp::Ordering;
 use models::{Coordinates, PriceTier, Station, StationsResponse};

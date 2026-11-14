@@ -22,3 +22,7 @@ path = "api/stations.rs"
 [[bin]]
 name = "filters"
 path = "api/filters.rs"
+
+[[bin]]
+name = "market"
+path = "api/market.rs"

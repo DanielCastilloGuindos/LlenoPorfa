@@ -9,6 +9,7 @@ import StationList from './StationList.vue';
 import InteractiveMap from './InteractiveMap.vue';
 import StationDetailModal from './StationDetailModal.vue';
 import SaveSearchModal from './SaveSearchModal.vue';
+import MarketBarometerModal from './MarketBarometerModal.vue';
 import RefuelHistoryView from './RefuelHistoryView.vue';
 import FavoritesView from './FavoritesView.vue';
 import SettingsView from './SettingsView.vue';
@@ -18,6 +19,7 @@ import { useStations } from '../composables/useStations';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useSettings } from '../composables/useSettings';
 import { useRefuelLogs } from '../composables/useRefuelLogs';
+import { useMarket } from '../composables/useMarket';
 import gsap from 'gsap';
 
 const activeTab = ref<TabId>('search');
@@ -47,6 +49,7 @@ const { locationState, requestCurrentLocation, dismissError, popularLocations, s
   useGeolocation();
 const { settings } = useSettings();
 const { setPrefillFromStation } = useRefuelLogs();
+const { fetchMarketData } = useMarket();
 
 // Check URL query parameters for PWA shortcuts (e.g. ?tab=map or ?tab=refuel&new=1)
 const handleUrlShortcuts = () => {
@@ -147,6 +150,7 @@ onMounted(async () => {
   } finally {
     await fetchStations();
     checkUrlStation();
+    fetchMarketData(stats.value.avgPrice ?? undefined);
   }
 });
 </script>
@@ -275,6 +279,9 @@ onMounted(async () => {
       v-if="showSaveModal"
       @close="showSaveModal = false"
     />
+
+    <!-- Crude & Taxes Barometer Modal / Bottom Sheet -->
+    <MarketBarometerModal />
 
     <!-- City Selection Modal from Banner -->
     <div

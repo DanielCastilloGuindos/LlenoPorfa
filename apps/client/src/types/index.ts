@@ -83,3 +83,49 @@ export interface UserSettings {
 }
 
 export type TabId = 'search' | 'refuel' | 'map' | 'favorites' | 'settings';
+
+export interface DailyMarketPoint {
+  date: string;
+  timestamp: number;
+  brent_usd: number;
+  eur_usd: number;
+  crude_eur_barrel: number;
+  crude_eur_liter: number;
+}
+
+export interface FuelTaxBreakdown {
+  crude_cost: number;
+  crude_pct: number;
+  refining_margin: number;
+  refining_margin_pct: number;
+  ieh: number;
+  ieh_pct: number;
+  iva: number;
+  iva_pct: number;
+}
+
+export interface FuelMarketDetails {
+  name: string;
+  ieh: number;
+  iva_rate: number;
+  pvp: number;
+  is_real_avg: boolean;
+  breakdown: FuelTaxBreakdown;
+}
+
+export interface MarketApiResponse {
+  updated_at: number;
+  brent_usd: number;
+  eur_usd: number;
+  crude_eur_barrel: number;
+  crude_eur_liter: number;
+  delta_24h_pct: number;
+  delta_7d_pct: number;
+  trend: 'rising' | 'falling' | 'stable';
+  trend_message: string;
+  history: DailyMarketPoint[];
+  fuels: {
+    g95_e5: FuelMarketDetails;
+    diesel_a: FuelMarketDetails;
+  };
+}

@@ -14,6 +14,7 @@ import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
 import { useSettings } from '../composables/useSettings';
 import { useGeolocation } from '../composables/useGeolocation';
+import { useMarket } from '../composables/useMarket';
 import { useHaptics } from '../composables/useHaptics';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
@@ -36,12 +37,51 @@ const { isFavorite, toggleFavorite } = useFavorites();
 const { calculateTankSavings, fuel } = useStations();
 const { settings } = useSettings();
 const { locationState } = useGeolocation();
+const { marketData, openBarometer } = useMarket();
 const { light, success, medium } = useHaptics();
 
 const isFav = computed(() => (props.station ? isFavorite(props.station.id) : false));
 const savings = computed(() =>
   props.station ? calculateTankSavings(props.station.selected_fuel_price) : 0
 );
+
+// Contextual money breakdown for this station vs crude & official taxes
+const stationBreakdown = computed(() => {
+  if (!props.station || !props.station.selected_fuel_price || !marketData.value) {
+    return null;
+  }
+  const pvp = props.station.selected_fuel_price;
+  const isDiesel = fuel.value === 'diesel_a' || fuel.value === 'diesel_premium';
+  const ieh = isDiesel ? 0.37900 : 0.47269;
+  const crudeCost = marketData.value.crude_eur_liter;
+  const baseSinIva = pvp / 1.21;
+  const iva = pvp - baseSinIva;
+  const margin = Math.max(0, baseSinIva - ieh - crudeCost);
+
+  const crudePct = Math.round((crudeCost / pvp) * 1000) / 10;
+  const marginPct = Math.round((margin / pvp) * 1000) / 10;
+  const iehPct = Math.round((ieh / pvp) * 1000) / 10;
+  const ivaPct = Math.round((iva / pvp) * 1000) / 10;
+
+  const avgMargin = isDiesel
+    ? marketData.value.fuels.diesel_a.breakdown.refining_margin
+    : marketData.value.fuels.g95_e5.breakdown.refining_margin;
+  const marginDiff = Math.round((margin - avgMargin) * 1000) / 1000;
+
+  return {
+    pvp,
+    crudeCost,
+    crudePct,
+    margin,
+    marginPct,
+    marginDiff,
+    ieh,
+    iehPct,
+    iva,
+    ivaPct,
+    fuelName: isDiesel ? 'Gasóleo A' : 'Gasolina 95 E5',
+  };
+});
 
 // Map deep routing links
 const googleMapsUrl = computed(() => {
@@ -271,6 +311,87 @@ watch(
               {{ station.prices.glp ? station.prices.glp.toFixed(3) + ' €' : 'No disp.' }}
             </strong>
           </div>
+        </div>
+      </div>
+
+      <!-- Where does your money go in this station? Contextual Breakdown -->
+      <div v-if="stationBreakdown" class="station-money-breakdown">
+        <div
+          class="breakdown-header"
+          role="button"
+          tabindex="0"
+          title="Ver Barómetro del Crudo completo"
+          @click="openBarometer(); light()"
+          @keydown.enter.prevent="openBarometer(); light()"
+        >
+          <div class="header-left">
+            <span class="breakdown-icon">🛢️</span>
+            <div class="breakdown-titles">
+              <span class="section-heading">¿A dónde va tu dinero en esta estación?</span>
+              <span class="section-sub">Desglose de 1L de {{ stationBreakdown.fuelName }} ({{ stationBreakdown.pvp.toFixed(3) }} €)</span>
+            </div>
+          </div>
+          <span class="open-barometer-link">Barómetro ↗</span>
+        </div>
+
+        <!-- Mini Stacked Bar -->
+        <div class="mini-stacked-bar">
+          <div
+            class="seg seg-crude"
+            :style="{ width: `${stationBreakdown.crudePct}%` }"
+            :title="`Crudo puro: ${stationBreakdown.crudeCost.toFixed(3)}€ (${stationBreakdown.crudePct}%)`"
+          ></div>
+          <div
+            class="seg seg-margin"
+            :style="{ width: `${stationBreakdown.marginPct}%` }"
+            :title="`Margen y refino: ${stationBreakdown.margin.toFixed(3)}€ (${stationBreakdown.marginPct}%)`"
+          ></div>
+          <div
+            class="seg seg-ieh"
+            :style="{ width: `${stationBreakdown.iehPct}%` }"
+            :title="`IEH: ${stationBreakdown.ieh.toFixed(3)}€ (${stationBreakdown.iehPct}%)`"
+          ></div>
+          <div
+            class="seg seg-iva"
+            :style="{ width: `${stationBreakdown.ivaPct}%` }"
+            :title="`IVA 21%: ${stationBreakdown.iva.toFixed(3)}€ (${stationBreakdown.ivaPct}%)`"
+          ></div>
+        </div>
+
+        <div class="breakdown-pill-row">
+          <div class="breakdown-pill">
+            <span class="pill-dot crude"></span>
+            <span class="pill-label">Crudo:</span>
+            <strong>{{ stationBreakdown.crudeCost.toFixed(2) }}€</strong>
+            <small>{{ stationBreakdown.crudePct }}%</small>
+          </div>
+
+          <div class="breakdown-pill">
+            <span class="pill-dot margin"></span>
+            <span class="pill-label">Margen:</span>
+            <strong>{{ stationBreakdown.margin.toFixed(2) }}€</strong>
+            <small>{{ stationBreakdown.marginPct }}%</small>
+          </div>
+
+          <div class="breakdown-pill">
+            <span class="pill-dot taxes"></span>
+            <span class="pill-label">Impuestos:</span>
+            <strong>{{ (stationBreakdown.ieh + stationBreakdown.iva).toFixed(2) }}€</strong>
+            <small>{{ (stationBreakdown.iehPct + stationBreakdown.ivaPct).toFixed(1) }}%</small>
+          </div>
+        </div>
+
+        <!-- Comparison with national/zone average margin -->
+        <div class="margin-compare-badge" :class="stationBreakdown.marginDiff < 0 ? 'cheaper' : 'expensive'">
+          <span v-if="stationBreakdown.marginDiff < -0.01">
+            Margen de esta estación: <strong>{{ Math.abs(stationBreakdown.marginDiff).toFixed(3) }} €/L más ajustado</strong> que la media.
+          </span>
+          <span v-else-if="stationBreakdown.marginDiff > 0.01">
+            Margen de esta estación: <strong>+{{ stationBreakdown.marginDiff.toFixed(3) }} €/L superior</strong> a la media.
+          </span>
+          <span v-else>
+            Margen de esta estación: <strong>en línea con la media</strong>.
+          </span>
         </div>
       </div>
 
@@ -562,6 +683,143 @@ watch(
           font-size: 0.85rem;
           font-weight: 500;
         }
+      }
+    }
+  }
+}
+
+.station-money-breakdown {
+  @include card-surface;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 3px solid #f59e0b;
+
+  .breakdown-header {
+    @include flex-between;
+    align-items: center;
+    cursor: pointer;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .breakdown-icon {
+        font-size: 1.15rem;
+      }
+
+      .breakdown-titles {
+        display: flex;
+        flex-direction: column;
+
+        .section-heading {
+          font-size: 0.775rem;
+          font-weight: 800;
+          color: var(--text-main);
+        }
+
+        .section-sub {
+          font-size: 0.675rem;
+          color: var(--text-muted);
+        }
+      }
+    }
+
+    .open-barometer-link {
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: #f59e0b;
+      white-space: nowrap;
+      transition: transform var(--transition-fast);
+
+      &:hover {
+        transform: translateX(2px);
+      }
+    }
+  }
+
+  .mini-stacked-bar {
+    width: 100%;
+    height: 14px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: flex;
+    background: var(--bg-surface-subtle);
+
+    .seg {
+      height: 100%;
+      transition: width 0.3s ease;
+
+      &.seg-crude { background: #f59e0b; }
+      &.seg-margin { background: #0284c7; }
+      &.seg-ieh { background: #8b5cf6; }
+      &.seg-iva { background: #10b981; }
+    }
+  }
+
+  .breakdown-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .breakdown-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.725rem;
+      color: var(--text-muted);
+
+      .pill-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        flex-shrink: 0;
+
+        &.crude { background: #f59e0b; }
+        &.margin { background: #0284c7; }
+        &.taxes { background: #8b5cf6; }
+      }
+
+      strong {
+        color: var(--text-main);
+        font-family: var(--font-mono);
+      }
+
+      small {
+        color: var(--text-muted);
+      }
+    }
+  }
+
+  .margin-compare-badge {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.725rem;
+    line-height: 1.3;
+
+    &.cheaper {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+
+      strong {
+        color: #10b981;
+      }
+    }
+
+    &.expensive {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+
+      [data-theme="dark"] & {
+        color: #f59e0b;
+      }
+
+      strong {
+        color: #f59e0b;
       }
     }
   }

@@ -36,6 +36,13 @@
       }
     },
     {
+      "src": "/api/market",
+      "dest": "/apps/api/api/market",
+      "headers": {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600"
+      }
+    },
+    {
       "src": "/sw.js",
       "dest": "/apps/client/sw.js",
       "headers": {
