@@ -135,34 +135,39 @@ pub fn normalize_brand(raw: &str) -> String {
 /// Builds a hardened reqwest client tailored for government SSL endpoints.
 fn build_http_client() -> Result<reqwest::Client, ApiError> {
     reqwest::Client::builder()
-        .http1_only()
-        .user_agent("Mozilla/5.0 (compatible; llenoPorfa/1.0)")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         .danger_accept_invalid_certs(true)
-        .timeout(Duration::from_secs(12))
-        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(20))
+        .connect_timeout(Duration::from_secs(6))
+        .tcp_nodelay(true)
         .build()
         .map_err(|e| ApiError::Internal(format!("Failed to build HTTP client: {}", e)))
 }
 
 /// Fetches raw JSON envelope from a given URL with IIS-resilient decoding.
 async fn fetch_from_url(client: &reqwest::Client, url: &str) -> Result<MitecoEnvelope, ApiError> {
+    use std::error::Error as StdError;
+
     let response = client
         .get(url)
         .header("Accept", "application/json, text/plain, */*")
         .header("Accept-Language", "es-ES,es;q=0.9")
+        .header("Accept-Encoding", "identity")
         .send()
         .await
         .map_err(|e| {
+            let source_info = e.source().map(|s| format!(" (source: {})", s)).unwrap_or_default();
             if e.is_timeout() {
-                ApiError::UpstreamTimeout(format!("Timeout connecting to {}: {}", url, e))
+                ApiError::UpstreamTimeout(format!("Timeout connecting to {}: {}{}", url, e, source_info))
             } else {
-                ApiError::UpstreamUnavailable(format!("Network error from {}: {}", url, e))
+                ApiError::UpstreamUnavailable(format!("Network error from {}: {}{}", url, e, source_info))
             }
         })?;
 
     let status = response.status();
     let bytes = response.bytes().await.map_err(|e| {
-        ApiError::UpstreamUnavailable(format!("Failed to read response body from {}: {}", url, e))
+        let source_info = e.source().map(|s| format!(" (source: {})", s)).unwrap_or_default();
+        ApiError::UpstreamUnavailable(format!("Failed to read response body from {}: {}{}", url, e, source_info))
     })?;
 
     // Handle UTF-8 with Latin-1 (ISO-8859-1) fallback for Spanish characters in IIS responses
