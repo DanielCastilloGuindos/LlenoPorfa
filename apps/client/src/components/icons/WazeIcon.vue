@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useId } from 'vue';
+
 withDefaults(
   defineProps<{
     size?: number | string;
@@ -7,6 +9,9 @@ withDefaults(
     size: 20,
   }
 );
+
+const rawId = useId();
+const wazeGradId = `wazeGrad_${rawId.replace(/:/g, '')}`;
 </script>
 
 <template>
@@ -19,7 +24,7 @@ withDefaults(
     aria-label="Waze"
   >
     <defs>
-      <linearGradient id="wazeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient :id="wazeGradId" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#38d4fc" />
         <stop offset="100%" stop-color="#05b2e6" />
       </linearGradient>
@@ -27,7 +32,7 @@ withDefaults(
     <!-- Modern rounded Waze body -->
     <path
       d="M24 7 C21.5 3.5 17 2 12 2.5 C6.5 3 2 7.5 2 13 C2 17.5 4.8 21.2 8.8 22.8 L8.2 25.5 C8 26.5 8.8 27.5 9.8 27.5 L19.5 27.5 C24.5 27.5 28.5 23.5 28.5 18.5 C28.5 14.8 26.5 11.5 23.5 9.8 C24.2 8.8 24.5 7.8 24 7 Z"
-      fill="url(#wazeGrad)"
+      :fill="`url(#${wazeGradId})`"
     />
     <!-- Back & Front Wheels with rims -->
     <circle cx="10" cy="27.5" r="2.8" fill="#1e293b" />

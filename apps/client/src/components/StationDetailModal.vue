@@ -336,41 +336,41 @@ watch(
       <!-- Direct GPS Navigation Logos -->
       <div class="gps-navigation-section">
         <span class="section-heading">Abrir en navegador GPS</span>
-        <div class="direct-nav-logos">
+        <div class="gps-direct-logos">
           <a
             :href="googleMapsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="direct-nav-logo"
+            class="gps-logo-item"
             title="Abrir en Google Maps"
             aria-label="Google Maps"
             @click="handleNavClick('google_maps')"
           >
-            <GoogleMapsIcon :size="44" />
+            <GoogleMapsIcon :size="20" />
           </a>
 
           <a
             :href="wazeUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="direct-nav-logo"
+            class="gps-logo-item"
             title="Abrir en Waze"
             aria-label="Waze"
             @click="handleNavClick('waze')"
           >
-            <WazeIcon :size="44" />
+            <WazeIcon :size="20" />
           </a>
 
           <a
             :href="appleMapsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="direct-nav-logo"
+            class="gps-logo-item"
             title="Abrir en Apple Maps"
             aria-label="Apple Maps"
             @click="handleNavClick('apple_maps')"
           >
-            <AppleMapsIcon :size="44" />
+            <AppleMapsIcon :size="20" />
           </a>
         </div>
       </div>
@@ -881,45 +881,41 @@ watch(
 }
 
 .gps-navigation-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: center;
-  padding-top: 4px;
+  @include flex-between;
+  padding: 10px 14px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
 
   .section-heading {
-    font-size: 0.75rem;
+    font-size: 0.775rem;
     font-weight: 700;
-    text-transform: uppercase;
     color: var(--text-muted);
-    letter-spacing: 0.05em;
   }
 
-  .direct-nav-logos {
+  .gps-direct-logos {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 32px;
-    width: 100%;
-    padding: 6px 0;
+    gap: 14px;
 
-    .direct-nav-logo {
+    .gps-logo-item {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
+      background: none;
+      border: none;
+      box-shadow: none;
+      padding: 2px;
       line-height: 1;
-      opacity: 0.95;
-      cursor: pointer;
-      border-radius: var(--radius-md);
-      transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  filter 0.2s ease,
-                  opacity 0.2s ease;
+      opacity: 0.92;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.2s ease,
+                  filter 0.2s ease;
 
       &:hover {
         opacity: 1;
-        transform: scale(1.2) translateY(-2px);
-        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+        transform: scale(1.22) translateY(-1px);
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
       }
 
       &:active {

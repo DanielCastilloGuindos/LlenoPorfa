@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useId } from 'vue';
+
 withDefaults(
   defineProps<{
     size?: number | string;
@@ -7,6 +9,11 @@ withDefaults(
     size: 20,
   }
 );
+
+const rawId = useId();
+const baseId = `appleBase_${rawId.replace(/:/g, '')}`;
+const pinGradId = `applePinGrad_${rawId.replace(/:/g, '')}`;
+const clipId = `appleSquircle_${rawId.replace(/:/g, '')}`;
 </script>
 
 <template>
@@ -19,22 +26,22 @@ withDefaults(
     aria-label="Apple Maps"
   >
     <defs>
-      <linearGradient id="appleBase" x1="0%" y1="0%" x2="0%" y2="100%">
+      <linearGradient :id="baseId" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stop-color="#ffffff" />
         <stop offset="100%" stop-color="#e2e8f0" />
       </linearGradient>
-      <linearGradient id="applePinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient :id="pinGradId" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#0ea5e9" />
         <stop offset="100%" stop-color="#0284c7" />
       </linearGradient>
-      <clipPath id="appleSquircle">
+      <clipPath :id="clipId">
         <rect width="32" height="32" rx="7.5" />
       </clipPath>
     </defs>
 
-    <g clip-path="url(#appleSquircle)">
+    <g :clip-path="`url(#${clipId})`">
       <!-- Map base -->
-      <rect width="32" height="32" fill="url(#appleBase)" />
+      <rect width="32" height="32" :fill="`url(#${baseId})`" />
 
       <!-- Green park areas -->
       <path d="M0 0 L14 0 L10 12 L0 8 Z" fill="#bbf7d0" />
@@ -56,7 +63,7 @@ withDefaults(
       />
 
       <!-- Location Arrow Badge -->
-      <circle cx="21" cy="8" r="5" fill="url(#applePinGrad)" />
+      <circle cx="21" cy="8" r="5" :fill="`url(#${pinGradId})`" />
       <path
         d="M21 5 L23.8 10.5 L21 9.2 L18.2 10.5 Z"
         fill="#ffffff"

@@ -321,39 +321,41 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="quick-nav-actions">
-          <a
-            :href="`https://www.google.com/maps/dir/?api=1&destination=${selectedStation.latitude},${selectedStation.longitude}`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="gps-logo-item"
-            @click.stop="registerPendingVisit(selectedStation, 'google_maps', fuel)"
-            title="Abrir en Google Maps"
-            aria-label="Google Maps"
-          >
-            <GoogleMapsIcon :size="20" />
-          </a>
-          <a
-            :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="gps-logo-item"
-            @click.stop="registerPendingVisit(selectedStation, 'waze', fuel)"
-            title="Abrir en Waze"
-            aria-label="Waze"
-          >
-            <WazeIcon :size="20" />
-          </a>
-          <a
-            :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="gps-logo-item"
-            @click.stop="registerPendingVisit(selectedStation, 'apple_maps', fuel)"
-            title="Abrir en Apple Maps"
-            aria-label="Apple Maps"
-          >
-            <AppleMapsIcon :size="20" />
-          </a>
+          <div class="gps-direct-logos" @click.stop>
+            <a
+              :href="`https://www.google.com/maps/dir/?api=1&destination=${selectedStation.latitude},${selectedStation.longitude}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="gps-logo-item"
+              @click.stop="registerPendingVisit(selectedStation, 'google_maps', fuel)"
+              title="Abrir en Google Maps"
+              aria-label="Google Maps"
+            >
+              <GoogleMapsIcon :size="20" />
+            </a>
+            <a
+              :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="gps-logo-item"
+              @click.stop="registerPendingVisit(selectedStation, 'waze', fuel)"
+              title="Abrir en Waze"
+              aria-label="Waze"
+            >
+              <WazeIcon :size="20" />
+            </a>
+            <a
+              :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="gps-logo-item"
+              @click.stop="registerPendingVisit(selectedStation, 'apple_maps', fuel)"
+              title="Abrir en Apple Maps"
+              aria-label="Apple Maps"
+            >
+              <AppleMapsIcon :size="20" />
+            </a>
+          </div>
 
           <button class="more-btn" @click.stop="emit('open-detail', selectedStation)">
             <span>Detalle</span>
@@ -544,30 +546,37 @@ onBeforeUnmount(() => {
     .quick-nav-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
 
-      .gps-logo-item {
-        display: inline-flex;
+      .gps-direct-logos {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        background: none;
-        border: none;
-        box-shadow: none;
-        padding: 3px;
-        line-height: 1;
-        opacity: 0.92;
-        transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                    opacity 0.2s ease,
-                    filter 0.2s ease;
+        gap: 12px;
 
-        &:hover {
-          opacity: 1;
-          transform: scale(1.2) translateY(-1px);
-          filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
-        }
+        .gps-logo-item {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: none;
+          border: none;
+          box-shadow: none;
+          padding: 2px;
+          line-height: 1;
+          opacity: 0.92;
+          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      opacity 0.2s ease,
+                      filter 0.2s ease;
 
-        &:active {
-          transform: scale(0.92);
+          &:hover {
+            opacity: 1;
+            transform: scale(1.22) translateY(-1px);
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+          }
+
+          &:active {
+            transform: scale(0.92);
+          }
         }
       }
 
