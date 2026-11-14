@@ -64,6 +64,10 @@ const initMap = async () => {
 
   markersLayer = L.layerGroup().addTo(mapInstance);
 
+  mapInstance.on('click', () => {
+    emit('select-station', null as any);
+  });
+
   renderUserLocation();
   renderStationMarkers();
 
@@ -429,14 +433,14 @@ onBeforeUnmount(() => {
 // Mobile bottom preview sheet
 .mobile-bottom-station-card {
   position: absolute;
-  bottom: 12px;
+  bottom: 16px;
   left: 12px;
   right: 12px;
-  z-index: 450;
+  z-index: 500;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 0 12px rgba(16, 185, 129, 0.15);
   padding: 14px 16px;
   cursor: pointer;
   display: flex;

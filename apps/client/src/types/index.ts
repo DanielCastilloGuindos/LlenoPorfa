@@ -98,6 +98,7 @@ export interface UserSettings {
   activeVehicleId?: string;
   fiscalName?: string;
   fiscalNif?: string;
+  nativeBackgroundRadar?: boolean;
 }
 
 export type TabId = 'search' | 'refuel' | 'map' | 'favorites' | 'settings';

@@ -12,6 +12,7 @@ const defaultSettings: UserSettings = {
   activeVehicleId: undefined,
   fiscalName: '',
   fiscalNif: '',
+  nativeBackgroundRadar: false,
 };
 
 const settings = ref<UserSettings>({ ...defaultSettings });

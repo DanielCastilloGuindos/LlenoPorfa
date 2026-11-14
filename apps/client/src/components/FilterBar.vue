@@ -6,6 +6,15 @@ import { useHaptics } from '../composables/useHaptics';
 import type { FuelId, SortMode } from '../types';
 import gsap from 'gsap';
 
+const props = withDefaults(
+  defineProps<{
+    onlyFuels?: boolean;
+  }>(),
+  {
+    onlyFuels: false,
+  }
+);
+
 const { fuel, radius, brand, open24h, sort, stats, filtersCatalog, fetchStations } = useStations();
 const { light, medium } = useHaptics();
 
@@ -104,7 +113,7 @@ const handleOpen24hToggle = () => {
 </script>
 
 <template>
-  <div class="filter-bar">
+  <div class="filter-bar" :class="{ 'only-fuels-mode': onlyFuels }">
     <!-- Quick Fuel Selector Pills (Horizontal Scroll) -->
     <div class="fuel-pills-scroll">
       <button
@@ -119,6 +128,7 @@ const handleOpen24hToggle = () => {
 
       <!-- Expand secondary filters toggle button -->
       <button
+        v-if="!onlyFuels"
         class="toggle-filters-btn"
         :class="{ active: expanded || brand !== 'all' || open24h }"
         @click="expanded ? closeSheet() : openSheet()"
@@ -130,7 +140,7 @@ const handleOpen24hToggle = () => {
     </div>
 
     <!-- Sticky Stats Bar: Siempre fijo mostrando Mínimo y Medio -->
-    <div v-if="stats.count > 0" class="sticky-stats-summary">
+    <div v-if="!onlyFuels && stats.count > 0" class="sticky-stats-summary">
       <div class="stat-item">
         <span class="stat-label">Surtidores:</span>
         <strong class="stat-number">{{ stats.count }}</strong>

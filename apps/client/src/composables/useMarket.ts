@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import type { MarketApiResponse } from '../types';
+import { apiUrl } from '../utils/apiBase';
 
 const STORAGE_KEY = 'llenoporfa_market_cache_v1';
 
@@ -35,7 +36,7 @@ export function useMarket() {
       }
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`/api/market${queryString}`);
+      const res = await fetch(apiUrl(`/api/market${queryString}`));
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);

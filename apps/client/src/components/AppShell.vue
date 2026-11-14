@@ -22,6 +22,7 @@ import { useRefuelLogs } from '../composables/useRefuelLogs';
 import { useMarket } from '../composables/useMarket';
 import { useTelemetry } from '../composables/useTelemetry';
 import { useVisitDetector } from '../composables/useVisitDetector';
+import { useNativeRadar } from '../composables/useNativeRadar';
 import gsap from 'gsap';
 
 const activeTab = ref<TabId>('search');
@@ -54,6 +55,15 @@ const { setPrefillFromStation } = useRefuelLogs();
 const { fetchMarketData } = useMarket();
 const { trackEvent } = useTelemetry();
 const { arrivalPrompt, dismissArrivalPrompt, initVisitDetector } = useVisitDetector();
+useNativeRadar();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('llenoporfa:navigate-tab', (e: any) => {
+    if (e.detail && ['search', 'refuel', 'map', 'favorites', 'settings'].includes(e.detail)) {
+      activeTab.value = e.detail;
+    }
+  });
+}
 
 const handleArrivalRefuel = () => {
   if (!arrivalPrompt.value) return;
@@ -240,10 +250,9 @@ onMounted(async () => {
             class="split-map-container"
             :class="{ 'mobile-hidden': activeTab === 'search' }"
           >
-            <!-- Search & Filter Controls on Mobile Map tab -->
+            <!-- Fuel Selector Controls on Mobile Map tab (Only fuels, no location or text search) -->
             <div class="map-mobile-search-controls">
-              <SearchHeader @open-save-modal="showSaveModal = true" />
-              <FilterBar />
+              <FilterBar :only-fuels="true" />
             </div>
 
             <div class="map-view-body">
@@ -439,7 +448,9 @@ onMounted(async () => {
 
     .split-map-container {
       width: 100%;
-      height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom));
+      height: 100%;
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -457,7 +468,8 @@ onMounted(async () => {
     .map-view-body {
       flex: 1;
       width: 100%;
-      height: 100%;
+      min-height: 0;
+      height: auto;
       position: relative;
       overflow: hidden;
     }

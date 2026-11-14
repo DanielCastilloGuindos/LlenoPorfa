@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { useGeolocation } from './useGeolocation';
 import { useSettings } from './useSettings';
+import { apiUrl } from '../utils/apiBase';
 
 const LOCAL_STORAGE_STATIONS_BACKUP = 'llenoporfa_last_stations_cache_v1';
 
@@ -94,7 +95,7 @@ export function useStations() {
 
   const fetchFilters = async () => {
     try {
-      const res = await fetch('/api/filters');
+      const res = await fetch(apiUrl('/api/filters'));
       if (res.ok) {
         const data: FiltersApiResponse = await res.json();
         filtersCatalog.value = data;
@@ -151,7 +152,7 @@ export function useStations() {
       }
       params.append('sort', sort.value);
 
-      const res = await fetch(`/api/stations?${params.toString()}`);
+      const res = await fetch(apiUrl(`/api/stations?${params.toString()}`));
       if (!res.ok) {
         let msg = `HTTP error ${res.status}`;
         try {

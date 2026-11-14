@@ -272,15 +272,6 @@ watch(
         <span>Registrar repostaje aquí</span>
       </button>
 
-      <!-- Relative position interactive mini-map -->
-      <div class="minimap-container">
-        <StationDetailMiniMap
-          :station="station"
-          :user-coords="locationState.coords"
-          @open-on-map="emit('open-on-map', $event)"
-        />
-      </div>
-
       <!-- Tank savings highlight box -->
       <div v-if="savings > 0.5" class="savings-banner">
         <Sparkles :size="18" class="sparkle-icon" />
@@ -463,6 +454,15 @@ watch(
             <AppleMapsIcon :size="44" />
           </a>
         </div>
+      </div>
+
+      <!-- Relative position interactive mini-map (moved below GPS navigation) -->
+      <div class="minimap-container">
+        <StationDetailMiniMap
+          :station="station"
+          :user-coords="locationState.coords"
+          @open-on-map="emit('open-on-map', $event)"
+        />
       </div>
     </div>
   </div>

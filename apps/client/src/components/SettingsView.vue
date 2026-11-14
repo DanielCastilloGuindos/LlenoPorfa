@@ -20,9 +20,12 @@ import {
   Plus,
   Heart,
   X,
+  Radio,
+  Bell,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { usePwaInstall } from '../composables/usePwaInstall';
+import { useNativeRadar } from '../composables/useNativeRadar';
 import { useHaptics } from '../composables/useHaptics';
 import type { FuelId, Vehicle } from '../types';
 
@@ -38,6 +41,12 @@ const {
 } = useSettings();
 const { canInstall, isStandalone, isIos, promptInstall } = usePwaInstall();
 const { light, success } = useHaptics();
+const { isNative, isRadarRunning, radarError } = useNativeRadar();
+
+const toggleBackgroundRadar = () => {
+  light();
+  saveSettings({ nativeBackgroundRadar: !settings.value.nativeBackgroundRadar });
+};
 
 const fuelOptions: { id: FuelId; label: string }[] = [
   { id: 'g95_e5', label: 'Gasolina 95 E5' },
@@ -178,6 +187,35 @@ const handleInstallPwa = async () => {
 
       <div v-else class="browser-info">
         <p class="card-desc">Esta aplicación cumple con los estándares PWA modernos y guarda precios automáticamente para su consulta sin conexión.</p>
+      </div>
+    </div>
+
+    <!-- Native Background Radar Card -->
+    <div class="settings-card">
+      <div class="card-header-between">
+        <div class="card-header-icon">
+          <Radio :size="20" class="text-primary" />
+          <h3 class="card-title">Radar de Ahorro en Segundo Plano</h3>
+        </div>
+        <button
+          class="radar-switch"
+          :class="{ active: settings.nativeBackgroundRadar }"
+          @click="toggleBackgroundRadar"
+          role="switch"
+          :aria-checked="!!settings.nativeBackgroundRadar"
+        >
+          <span class="switch-handle"></span>
+        </button>
+      </div>
+      <p class="card-desc">
+        Monitorea precios cercanos mientras te desplazas con bajo consumo de batería (filtro de 400m). Te avisa de chollos a menos de 800m (-0,08 €/L) y detecta cuándo llegas a una gasolinera para registrar el repostaje.
+      </p>
+      <div v-if="!isNative" class="native-radar-notice">
+        <Smartphone :size="15" />
+        <span>Disponible en la versión instalable para Android / iOS. En web/PWA el radar funciona en primer plano.</span>
+      </div>
+      <div v-if="radarError" class="radar-error-notice">
+        {{ radarError }}
       </div>
     </div>
 
@@ -971,5 +1009,54 @@ const handleInstallPwa = async () => {
       }
     }
   }
+}
+
+.radar-switch {
+  width: 48px;
+  height: 26px;
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+  position: relative;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  transition: background var(--transition-fast);
+
+  &.active {
+    background: var(--color-primary);
+
+    .switch-handle {
+      transform: translateX(22px);
+    }
+  }
+
+  .switch-handle {
+    display: block;
+    width: 22px;
+    height: 22px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform var(--transition-fast);
+  }
+}
+
+.native-radar-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+.radar-error-notice {
+  font-size: 0.775rem;
+  color: #ef4444;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-sm);
 }
 </style>

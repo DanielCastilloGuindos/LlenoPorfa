@@ -1,3 +1,5 @@
+import { apiUrl } from '../utils/apiBase';
+
 const DEVICE_ID_KEY = 'llenoporfa_device_id_v1';
 
 let cachedDeviceId: string | null = null;
@@ -80,14 +82,16 @@ export function useTelemetry() {
 
       const bodyStr = JSON.stringify(payload);
 
+      const targetUrl = apiUrl('/api/register/event');
+
       // Prefer non-blocking sendBeacon if available, otherwise fetch with keepalive
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
         const blob = new Blob([bodyStr], { type: 'application/json' });
-        const queued = navigator.sendBeacon('/api/register/event', blob);
+        const queued = navigator.sendBeacon(targetUrl, blob);
         if (queued) return;
       }
 
-      fetch('/api/register/event', {
+      fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyStr,
