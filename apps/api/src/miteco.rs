@@ -135,6 +135,7 @@ pub fn normalize_brand(raw: &str) -> String {
 /// Builds a hardened reqwest client tailored for government SSL endpoints.
 fn build_http_client() -> Result<reqwest::Client, ApiError> {
     reqwest::Client::builder()
+        .http1_only()
         .user_agent("Mozilla/5.0 (compatible; llenoPorfa/1.0)")
         .danger_accept_invalid_certs(true)
         .timeout(Duration::from_secs(12))
@@ -143,11 +144,12 @@ fn build_http_client() -> Result<reqwest::Client, ApiError> {
         .map_err(|e| ApiError::Internal(format!("Failed to build HTTP client: {}", e)))
 }
 
-/// Fetches raw JSON envelope from a given URL.
+/// Fetches raw JSON envelope from a given URL with IIS-resilient decoding.
 async fn fetch_from_url(client: &reqwest::Client, url: &str) -> Result<MitecoEnvelope, ApiError> {
     let response = client
         .get(url)
-        .header("Accept", "application/json")
+        .header("Accept", "application/json, text/plain, */*")
+        .header("Accept-Language", "es-ES,es;q=0.9")
         .send()
         .await
         .map_err(|e| {
@@ -158,18 +160,33 @@ async fn fetch_from_url(client: &reqwest::Client, url: &str) -> Result<MitecoEnv
             }
         })?;
 
-    if !response.status().is_success() {
+    let status = response.status();
+    let bytes = response.bytes().await.map_err(|e| {
+        ApiError::UpstreamUnavailable(format!("Failed to read response body from {}: {}", url, e))
+    })?;
+
+    // Handle UTF-8 with Latin-1 (ISO-8859-1) fallback for Spanish characters in IIS responses
+    let raw_text = match std::str::from_utf8(&bytes) {
+        Ok(s) => s.to_owned(),
+        Err(_) => bytes.iter().map(|&b| b as char).collect(),
+    };
+
+    let sample: String = raw_text.chars().take(200).collect();
+
+    if !status.is_success() {
         return Err(ApiError::UpstreamUnavailable(format!(
-            "Upstream endpoint {} responded with status {}",
-            url,
-            response.status()
+            "Upstream endpoint {} responded with status {}. Sample: [{}]",
+            url, status, sample
         )));
     }
 
-    let envelope = response.json::<MitecoEnvelope>().await.map_err(|e| {
+    // Strip BOM (\u{feff}) and surrounding whitespace
+    let clean_json = raw_text.trim_start_matches('\u{feff}').trim();
+
+    let envelope = serde_json::from_str::<MitecoEnvelope>(clean_json).map_err(|e| {
         ApiError::ParseError(format!(
-            "Failed to parse MITECO JSON payload from {}: {}",
-            url, e
+            "Failed to parse MITECO JSON payload from {} (HTTP {}): {}. Sample: [{}]",
+            url, status, e, sample
         ))
     })?;
 
