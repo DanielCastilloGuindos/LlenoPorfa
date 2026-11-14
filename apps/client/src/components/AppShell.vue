@@ -20,6 +20,8 @@ import { useGeolocation } from '../composables/useGeolocation';
 import { useSettings } from '../composables/useSettings';
 import { useRefuelLogs } from '../composables/useRefuelLogs';
 import { useMarket } from '../composables/useMarket';
+import { useTelemetry } from '../composables/useTelemetry';
+import { useVisitDetector } from '../composables/useVisitDetector';
 import gsap from 'gsap';
 
 const activeTab = ref<TabId>('search');
@@ -50,6 +52,25 @@ const { locationState, requestCurrentLocation, dismissError, popularLocations, s
 const { settings } = useSettings();
 const { setPrefillFromStation } = useRefuelLogs();
 const { fetchMarketData } = useMarket();
+const { trackEvent } = useTelemetry();
+const { arrivalPrompt, dismissArrivalPrompt, initVisitDetector } = useVisitDetector();
+
+const handleArrivalRefuel = () => {
+  if (!arrivalPrompt.value) return;
+  const p = arrivalPrompt.value;
+  setPrefillFromStation(
+    {
+      id: p.stationId,
+      brand: p.stationName,
+      address: p.address,
+      selected_fuel_price: p.price ?? null,
+    } as any,
+    p.fuel || fuel.value,
+    stats.value.avgPrice ?? undefined
+  );
+  dismissArrivalPrompt();
+  activeTab.value = 'refuel';
+};
 
 // Check URL query parameters for PWA shortcuts (e.g. ?tab=map or ?tab=refuel&new=1)
 const handleUrlShortcuts = () => {
@@ -141,6 +162,9 @@ watch(stations, () => {
 onMounted(async () => {
   handleUrlShortcuts();
   await fetchFilters();
+
+  trackEvent('app_open', { province: locationState.name });
+  initVisitDetector();
 
   // Automatic geolocation prompt on startup
   try {
@@ -273,6 +297,27 @@ onMounted(async () => {
       @record-refuel="handleRecordRefuel"
       @open-on-map="handleOpenOnMap"
     />
+
+    <!-- Proximity Arrival Prompt Toast -->
+    <transition name="toast-pop">
+      <div v-if="arrivalPrompt" class="arrival-station-toast" role="alert">
+        <div class="toast-content">
+          <div class="toast-icon">⛽</div>
+          <div class="toast-text">
+            <strong>¿Estás en {{ arrivalPrompt.stationName }}?</strong>
+            <span>{{ arrivalPrompt.address }}</span>
+          </div>
+        </div>
+        <div class="toast-actions">
+          <button class="toast-confirm-btn" @click="handleArrivalRefuel">
+            Registrar repostaje
+          </button>
+          <button class="toast-dismiss-btn" @click="dismissArrivalPrompt" aria-label="Cerrar">
+            <X :size="16" />
+          </button>
+        </div>
+      </div>
+    </transition>
 
     <!-- Save Search Preset Modal -->
     <SaveSearchModal
@@ -532,5 +577,108 @@ onMounted(async () => {
       }
     }
   }
+}
+
+.arrival-station-toast {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  background: var(--bg-surface);
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 0 15px rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 250;
+  backdrop-filter: blur(12px);
+
+  @media (min-width: 768px) {
+    bottom: 24px;
+  }
+
+  .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+
+    .toast-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .toast-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+
+      strong {
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      span {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .toast-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    .toast-confirm-btn {
+      padding: 6px 12px;
+      font-size: 0.775rem;
+      font-weight: 700;
+      background: var(--color-primary);
+      color: #ffffff;
+      border-radius: var(--radius-md);
+      transition: opacity 0.15s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+
+    .toast-dismiss-btn {
+      padding: 6px;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        color: var(--text-primary);
+        background: var(--bg-surface-subtle);
+      }
+    }
+  }
+}
+
+.toast-pop-enter-active,
+.toast-pop-leave-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-pop-enter-from,
+.toast-pop-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 15px) scale(0.96);
 }
 </style>

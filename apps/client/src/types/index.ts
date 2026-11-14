@@ -59,6 +59,17 @@ export interface FiltersApiResponse {
   sort_options: { id: SortMode; label: string }[];
 }
 
+export interface Vehicle {
+  id: string;
+  alias: string;
+  plate?: string;
+  fuelType: FuelId;
+  tankCapacityLiters: number;
+  fiscalName?: string;
+  fiscalNif?: string;
+  isDefault?: boolean;
+}
+
 export interface RefuelLog {
   id: string;
   stationName: string;
@@ -72,6 +83,9 @@ export interface RefuelLog {
   odometerKm?: number | null;
   notes?: string;
   savingsEur?: number;
+  vehicleId?: string;
+  vehicleAlias?: string;
+  vehiclePlate?: string;
   createdAt: number;
 }
 
@@ -80,6 +94,10 @@ export interface UserSettings {
   defaultRadius: number;
   tankCapacityLiters: number;
   theme: 'light' | 'dark' | 'system';
+  vehicles?: Vehicle[];
+  activeVehicleId?: string;
+  fiscalName?: string;
+  fiscalNif?: string;
 }
 
 export type TabId = 'search' | 'refuel' | 'map' | 'favorites' | 'settings';

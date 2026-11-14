@@ -13,13 +13,29 @@ import {
   PlusSquare,
   Smartphone,
   CheckCircle2,
+  Car,
+  FileText,
+  Trash2,
+  Edit2,
+  Plus,
+  Heart,
+  X,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { usePwaInstall } from '../composables/usePwaInstall';
 import { useHaptics } from '../composables/useHaptics';
-import type { FuelId } from '../types';
+import type { FuelId, Vehicle } from '../types';
 
-const { settings, saveSettings } = useSettings();
+const {
+  settings,
+  vehicles,
+  activeVehicle,
+  saveSettings,
+  addVehicle,
+  updateVehicle,
+  deleteVehicle,
+  setActiveVehicle,
+} = useSettings();
 const { canInstall, isStandalone, isIos, promptInstall } = usePwaInstall();
 const { light, success } = useHaptics();
 
@@ -38,6 +54,70 @@ const themes: { id: 'light' | 'dark' | 'system'; label: string; icon: any }[] = 
   { id: 'dark', label: 'Oscuro', icon: Moon },
   { id: 'system', label: 'Sistema', icon: Monitor },
 ];
+
+// Vehicle Form State
+const isVehicleModalOpen = ref(false);
+const editingVehicleId = ref<string | null>(null);
+const vehicleAlias = ref('');
+const vehicleBrand = ref('');
+const vehicleModel = ref('');
+const vehiclePlate = ref('');
+const vehicleFuelType = ref<FuelId>('g95_e5');
+const vehicleTankCapacity = ref<number>(50);
+
+const openAddVehicleModal = () => {
+  editingVehicleId.value = null;
+  vehicleAlias.value = '';
+  vehicleBrand.value = '';
+  vehicleModel.value = '';
+  vehiclePlate.value = '';
+  vehicleFuelType.value = settings.value.defaultFuel || 'g95_e5';
+  vehicleTankCapacity.value = settings.value.tankCapacityLiters || 50;
+  isVehicleModalOpen.value = true;
+};
+
+const openEditVehicleModal = (veh: Vehicle) => {
+  editingVehicleId.value = veh.id;
+  vehicleAlias.value = veh.alias;
+  vehicleBrand.value = veh.brand;
+  vehicleModel.value = veh.model;
+  vehiclePlate.value = veh.plate;
+  vehicleFuelType.value = veh.fuelType;
+  vehicleTankCapacity.value = veh.tankCapacityLiters;
+  isVehicleModalOpen.value = true;
+};
+
+const handleSaveVehicle = () => {
+  if (!vehicleAlias.value.trim() || !vehiclePlate.value.trim()) {
+    alert('Completá al menos el nombre/alias y la matrícula.');
+    return;
+  }
+
+  const payload = {
+    alias: vehicleAlias.value.trim(),
+    brand: vehicleBrand.value.trim() || 'Desconocida',
+    model: vehicleModel.value.trim() || '',
+    plate: vehiclePlate.value.trim().toUpperCase(),
+    fuelType: vehicleFuelType.value,
+    tankCapacityLiters: Number(vehicleTankCapacity.value) || 50,
+  };
+
+  if (editingVehicleId.value) {
+    updateVehicle(editingVehicleId.value, payload);
+  } else {
+    addVehicle(payload);
+  }
+
+  isVehicleModalOpen.value = false;
+};
+
+const handleFiscalChange = (key: 'fiscalName' | 'fiscalNif', value: string) => {
+  saveSettings({ [key]: value.trim() });
+};
+
+const supportUrl =
+  (typeof window !== 'undefined' && (window as any).PUBLIC_SUPPORT_URL) ||
+  'https://buymeacoffee.com/llenoporfa';
 
 const handleThemeChange = (themeId: 'light' | 'dark' | 'system') => {
   light();
@@ -190,6 +270,178 @@ const handleInstallPwa = async () => {
         >
           {{ r }} km
         </button>
+      </div>
+    </div>
+
+    <!-- Multi-Vehicle Section -->
+    <div class="settings-card">
+      <div class="card-header-between">
+        <div class="card-header-icon">
+          <Car :size="20" class="text-primary" />
+          <h3 class="card-title">Mis Vehículos</h3>
+        </div>
+        <button class="add-vehicle-btn" @click="openAddVehicleModal">
+          <Plus :size="16" />
+          <span>Añadir</span>
+        </button>
+      </div>
+      <p class="card-desc">Gestioná tus coches o motos para filtrar repostajes y vincular consumos.</p>
+
+      <div v-if="vehicles.length === 0" class="vehicle-empty">
+        <p>No tenés vehículos dados de alta. Podés añadir tu coche habitual para facilitar los registros.</p>
+      </div>
+
+      <div v-else class="vehicle-list">
+        <div
+          v-for="v in vehicles"
+          :key="v.id"
+          class="vehicle-item"
+          :class="{ active: settings.activeVehicleId === v.id }"
+        >
+          <div class="vehicle-info" @click="setActiveVehicle(v.id)">
+            <div class="vehicle-title-row">
+              <strong class="vehicle-alias">{{ v.alias }}</strong>
+              <span v-if="settings.activeVehicleId === v.id" class="badge-active">Activo</span>
+            </div>
+            <span class="vehicle-sub">{{ v.brand }} {{ v.model }} • {{ v.plate }} • {{ v.tankCapacityLiters }}L</span>
+          </div>
+
+          <div class="vehicle-actions">
+            <button class="icon-btn edit" @click="openEditVehicleModal(v)" title="Editar vehículo">
+              <Edit2 :size="14" />
+            </button>
+            <button class="icon-btn delete" @click="deleteVehicle(v.id)" title="Eliminar vehículo">
+              <Trash2 :size="14" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fiscal Data for Freelancers and Companies -->
+    <div class="settings-card">
+      <div class="card-header-icon">
+        <FileText :size="20" class="text-primary" />
+        <h3 class="card-title">Datos Fiscales (Autónomos / Gestoría)</h3>
+      </div>
+      <p class="card-desc">Se incluirán en el informe trimestral y CSV de repostajes para deducir el gasto.</p>
+
+      <div class="fiscal-grid">
+        <div class="form-group">
+          <label class="field-label">CIF / NIF</label>
+          <input
+            :value="settings.fiscalNif"
+            type="text"
+            placeholder="Ej. B12345678 o 12345678Z"
+            class="form-input uppercase"
+            @input="handleFiscalChange('fiscalNif', ($event.target as HTMLInputElement).value)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Razón Social / Nombre Comercial</label>
+          <input
+            :value="settings.fiscalName"
+            type="text"
+            placeholder="Ej. Mi Empresa S.L."
+            class="form-input"
+            @input="handleFiscalChange('fiscalName', ($event.target as HTMLInputElement).value)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Support Card -->
+    <div class="settings-card support-card">
+      <div class="card-header-icon">
+        <Heart :size="20" class="text-accent" />
+        <h3 class="card-title">Apoyo al Proyecto</h3>
+      </div>
+      <p class="card-desc">
+        llenoPorfa es una iniciativa independiente sin ánimo de lucro y sin publicidad invasiva.
+        Si la herramienta te resulta de utilidad para ahorrar, podés colaborar para cubrir los costes de hosting y dominios.
+      </p>
+      <a
+        :href="supportUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="support-project-btn"
+      >
+        <span>☕ Invitar a un café / Colaborar</span>
+      </a>
+    </div>
+
+    <!-- Vehicle Modal -->
+    <div v-if="isVehicleModalOpen" class="modal-backdrop" @click.self="isVehicleModalOpen = false">
+      <div class="vehicle-modal-card">
+        <div class="modal-header">
+          <h3>{{ editingVehicleId ? 'Editar Vehículo' : 'Añadir Nuevo Vehículo' }}</h3>
+          <button class="close-btn" @click="isVehicleModalOpen = false">
+            <X :size="18" />
+          </button>
+        </div>
+
+        <form @submit.prevent="handleSaveVehicle" class="vehicle-form">
+          <div class="form-group">
+            <label class="field-label">Nombre / Alias del vehículo*</label>
+            <input
+              v-model="vehicleAlias"
+              type="text"
+              required
+              placeholder="Ej. Coche familiar, Furgoneta reparto..."
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="field-label">Marca</label>
+              <input v-model="vehicleBrand" type="text" placeholder="Ej. Toyota" class="form-input" />
+            </div>
+            <div class="form-group flex-1">
+              <label class="field-label">Modelo</label>
+              <input v-model="vehicleModel" type="text" placeholder="Ej. Yaris Cross" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="field-label">Matrícula*</label>
+              <input
+                v-model="vehiclePlate"
+                type="text"
+                required
+                placeholder="1234 ABC"
+                class="form-input font-mono uppercase"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label class="field-label">Capacidad Depósito (L)</label>
+              <input
+                v-model.number="vehicleTankCapacity"
+                type="number"
+                min="10"
+                max="250"
+                class="form-input font-mono"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Combustible habitual</label>
+            <select v-model="vehicleFuelType" class="form-select">
+              <option v-for="f in fuelOptions" :key="f.id" :value="f.id">{{ f.label }}</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="isVehicleModalOpen = false">Cancelar</button>
+            <button type="submit" class="btn-primary">
+              <Check :size="16" />
+              <span>Guardar</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -437,6 +689,286 @@ const handleInstallPwa = async () => {
       background: var(--color-primary-light);
       color: var(--color-primary-dark);
       font-weight: 800;
+    }
+  }
+}
+
+.card-header-between {
+  @include flex-between;
+}
+
+.add-vehicle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  font-size: 0.775rem;
+  font-weight: 700;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.vehicle-empty {
+  padding: 12px;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.825rem;
+}
+
+.vehicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .vehicle-info {
+    cursor: pointer;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    .vehicle-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .vehicle-alias {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .badge-active {
+        font-size: 0.675rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        background: var(--color-primary);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: var(--radius-full);
+      }
+    }
+
+    .vehicle-sub {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+    }
+  }
+
+  .vehicle-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .icon-btn {
+      padding: 6px;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+
+      &:hover {
+        background: var(--bg-surface);
+        color: var(--text-main);
+      }
+
+      &.delete:hover {
+        color: #ef4444;
+      }
+    }
+  }
+}
+
+.fiscal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @include mobile {
+    grid-template-columns: 1fr;
+  }
+}
+
+.support-card {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(245, 158, 11, 0.05) 100%);
+
+  .text-accent {
+    color: #f59e0b;
+  }
+
+  .support-project-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: background 0.15s ease;
+    align-self: flex-start;
+
+    &:hover {
+      background: #d97706;
+    }
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.flex-1 {
+    flex: 1;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.field-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.form-input,
+.form-select {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 500;
+  min-height: 42px;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+  }
+
+  &.font-mono {
+    font-family: var(--font-mono);
+  }
+
+  &.uppercase {
+    text-transform: uppercase;
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 400;
+  @include flex-center;
+  padding: 16px;
+}
+
+.vehicle-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .modal-header {
+    @include flex-between;
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .close-btn {
+      color: var(--text-muted);
+      padding: 4px;
+
+      &:hover {
+        color: var(--text-main);
+      }
+    }
+  }
+
+  .vehicle-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+
+    .btn-secondary {
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.825rem;
+
+      &:hover {
+        color: var(--text-main);
+      }
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--color-primary);
+      color: #ffffff;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 700;
+
+      &:hover {
+        background: var(--color-primary-dark);
+      }
     }
   }
 }

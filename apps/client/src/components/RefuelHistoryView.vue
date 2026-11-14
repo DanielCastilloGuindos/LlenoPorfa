@@ -16,24 +16,46 @@ import {
   Droplet,
   Euro,
   MapPin,
+  Car,
+  Download,
+  Printer,
+  Heart,
 } from 'lucide-vue-next';
 import type { RefuelLog, FuelId, Station } from '../types';
 import { useRefuelLogs } from '../composables/useRefuelLogs';
 import { useSettings } from '../composables/useSettings';
 import { useStations } from '../composables/useStations';
 import { useFavorites } from '../composables/useFavorites';
+import { useTelemetry } from '../composables/useTelemetry';
 import gsap from 'gsap';
 
 const { logs, stats, activePrefill, addLog, updateLog, deleteLog, clearPrefill } = useRefuelLogs();
-const { settings } = useSettings();
+const { settings, vehicles, activeVehicle } = useSettings();
 const { stations, stats: stationsStats, fuel: currentFuelFilter } = useStations();
 const { favorites } = useFavorites();
+const { trackEvent } = useTelemetry();
 
 const isFormOpen = ref(false);
 const editingLogId = ref<string | null>(null);
 const prefillAvgPrice = ref<number | undefined>(undefined);
 
+// Filter States
+const filterVehicle = ref<string>('all');
+const filterTrimester = ref<'all' | '1T' | '2T' | '3T' | '4T'>('all');
+const filterYear = ref<number>(new Date().getFullYear());
+
+// Voluntary Support Modal
+const showSupportModal = ref(false);
+const savedAmountPrompt = ref(0);
+const supportUrl = computed(() => {
+  return (
+    (typeof window !== 'undefined' && (window as any).PUBLIC_SUPPORT_URL) ||
+    'https://buymeacoffee.com/llenoporfa'
+  );
+});
+
 // Form Fields
+const selectedVehicleId = ref<string>('');
 const stationName = ref('');
 const stationId = ref<string | undefined>(undefined);
 const stationAddress = ref<string | undefined>(undefined);
@@ -143,8 +165,104 @@ const selectQuickStation = (st: Station) => {
   }
 };
 
+const availableYears = computed(() => {
+  const years = new Set<number>();
+  years.add(new Date().getFullYear());
+  logs.value.forEach((l) => {
+    const y = new Date(l.date).getFullYear();
+    if (!isNaN(y)) years.add(y);
+  });
+  return Array.from(years).sort((a, b) => b - a);
+});
+
+const filteredLogs = computed(() => {
+  return logs.value.filter((log) => {
+    if (filterVehicle.value !== 'all' && log.vehicleId !== filterVehicle.value) {
+      return false;
+    }
+    if (filterTrimester.value !== 'all') {
+      const d = new Date(log.date);
+      if (d.getFullYear() !== filterYear.value) return false;
+      const m = d.getMonth();
+      if (filterTrimester.value === '1T' && (m < 0 || m > 2)) return false;
+      if (filterTrimester.value === '2T' && (m < 3 || m > 5)) return false;
+      if (filterTrimester.value === '3T' && (m < 6 || m > 8)) return false;
+      if (filterTrimester.value === '4T' && (m < 9 || m > 11)) return false;
+    }
+    return true;
+  });
+});
+
+const displayedStats = computed(() => {
+  let totalSpent = 0;
+  let totalSavings = 0;
+  let totalLiters = 0;
+  filteredLogs.value.forEach((l) => {
+    totalSpent += l.totalAmount;
+    totalSavings += l.savingsEur || 0;
+    totalLiters += l.liters;
+  });
+  const avgPricePerLiter = totalLiters > 0 ? totalSpent / totalLiters : 0;
+  return { totalSpent, totalSavings, totalLiters, avgPricePerLiter };
+});
+
+const exportCsv = () => {
+  const headers = [
+    'Fecha',
+    'Gasolinera',
+    'Direccion',
+    'Vehiculo',
+    'Matricula',
+    'Combustible',
+    'Litros',
+    'Precio_Litro',
+    'Base_Imponible_EUR',
+    'IVA_21_EUR',
+    'Total_EUR',
+    'NIF_CIF',
+    'Razon_Social',
+  ];
+
+  const rows = filteredLogs.value.map((item) => {
+    const base = (item.totalAmount / 1.21).toFixed(2);
+    const iva = (item.totalAmount - item.totalAmount / 1.21).toFixed(2);
+    return [
+      `"${new Date(item.date).toISOString().slice(0, 10)}"`,
+      `"${(item.stationName || '').replace(/"/g, '""')}"`,
+      `"${(item.stationAddress || '').replace(/"/g, '""')}"`,
+      `"${(item.vehicleAlias || '').replace(/"/g, '""')}"`,
+      `"${(item.vehiclePlate || '').replace(/"/g, '""')}"`,
+      `"${item.fuelType}"`,
+      item.liters.toFixed(2),
+      item.pricePerLiter.toFixed(3),
+      base,
+      iva,
+      item.totalAmount.toFixed(2),
+      `"${(settings.value.fiscalNif || '').replace(/"/g, '""')}"`,
+      `"${(settings.value.fiscalName || '').replace(/"/g, '""')}"`,
+    ].join(';');
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  const suffix = filterTrimester.value !== 'all' ? `_${filterYear.value}_${filterTrimester.value}` : '';
+  link.setAttribute('download', `repostajes_llenoporfa${suffix}_gestoria.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const printReport = () => {
+  window.print();
+};
+
 const openNewRefuelForm = () => {
   editingLogId.value = null;
+  selectedVehicleId.value = activeVehicle.value?.id || '';
   stationName.value = '';
   stationId.value = undefined;
   stationAddress.value = undefined;
@@ -180,6 +298,7 @@ const openNewRefuelForm = () => {
 
 const openEditRefuelForm = (item: RefuelLog) => {
   editingLogId.value = item.id;
+  selectedVehicleId.value = item.vehicleId || '';
   stationName.value = item.stationName;
   stationId.value = item.stationId;
   stationAddress.value = item.stationAddress;
@@ -207,6 +326,8 @@ const handleSave = () => {
   const calculatedSavings =
     avgP && avgP > p ? Math.round((avgP - p) * l * 100) / 100 : undefined;
 
+  const chosenVeh = vehicles.value.find((v) => v.id === selectedVehicleId.value);
+
   const payload = {
     stationName: stationName.value.trim(),
     stationId: stationId.value,
@@ -219,12 +340,34 @@ const handleSave = () => {
     savingsEur: calculatedSavings,
     odometerKm: odometerKm.value !== '' ? Number(odometerKm.value) : null,
     notes: notes.value.trim() || undefined,
+    vehicleId: chosenVeh?.id,
+    vehicleAlias: chosenVeh?.alias,
+    vehiclePlate: chosenVeh?.plate,
   };
 
   if (editingLogId.value) {
     updateLog(editingLogId.value, payload);
   } else {
     addLog(payload);
+  }
+
+  // Track telemetry
+  trackEvent('refuel_logged', {
+    station_id: stationId.value,
+    station_brand: stationName.value.trim(),
+    fuel_type: fuelType.value,
+    metadata: {
+      liters: l,
+      total: t,
+      savings: calculatedSavings,
+      vehicle_plate: chosenVeh?.plate,
+    },
+  });
+
+  // Prompt voluntary support if savings exceed 1.00 €
+  if (calculatedSavings && calculatedSavings >= 1.0) {
+    savedAmountPrompt.value = calculatedSavings;
+    showSupportModal.value = true;
   }
 
   isFormOpen.value = false;
@@ -281,7 +424,7 @@ onMounted(() => {
         </div>
         <div class="stat-data">
           <span class="label">Gasto Total</span>
-          <strong class="val">{{ stats.totalSpent.toFixed(2) }} €</strong>
+          <strong class="val">{{ displayedStats.totalSpent.toFixed(2) }} €</strong>
         </div>
       </div>
 
@@ -291,7 +434,7 @@ onMounted(() => {
         </div>
         <div class="stat-data">
           <span class="label">Ahorro Estimado</span>
-          <strong class="val highlight">{{ stats.totalSavings.toFixed(2) }} €</strong>
+          <strong class="val highlight">{{ displayedStats.totalSavings.toFixed(2) }} €</strong>
         </div>
       </div>
 
@@ -301,7 +444,7 @@ onMounted(() => {
         </div>
         <div class="stat-data">
           <span class="label">Litros Totales</span>
-          <strong class="val">{{ stats.totalLiters.toFixed(1) }} L</strong>
+          <strong class="val">{{ displayedStats.totalLiters.toFixed(1) }} L</strong>
         </div>
       </div>
 
@@ -312,9 +455,55 @@ onMounted(() => {
         <div class="stat-data">
           <span class="label">Precio Medio</span>
           <strong class="val">
-            {{ stats.avgPricePerLiter > 0 ? stats.avgPricePerLiter.toFixed(3) : '---' }} €/L
+            {{ displayedStats.avgPricePerLiter > 0 ? displayedStats.avgPricePerLiter.toFixed(3) : '---' }} €/L
           </strong>
         </div>
+      </div>
+    </div>
+
+    <!-- Filters & Accounting Export Toolbar -->
+    <div class="filters-toolbar">
+      <div class="filter-controls">
+        <!-- Vehicle filter -->
+        <div class="toolbar-select-wrap">
+          <Car :size="15" class="select-icon" />
+          <select v-model="filterVehicle" class="toolbar-select">
+            <option value="all">Todos los vehículos</option>
+            <option v-for="v in vehicles" :key="v.id" :value="v.id">
+              {{ v.alias }} ({{ v.plate }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Trimester filter -->
+        <div class="toolbar-select-wrap">
+          <Calendar :size="15" class="select-icon" />
+          <select v-model="filterTrimester" class="toolbar-select">
+            <option value="all">Todo el histórico</option>
+            <option value="1T">1T (Ene - Mar)</option>
+            <option value="2T">2T (Abr - Jun)</option>
+            <option value="3T">3T (Jul - Sep)</option>
+            <option value="4T">4T (Oct - Dic)</option>
+          </select>
+        </div>
+
+        <!-- Year selector (visible if trimester selected) -->
+        <div v-if="filterTrimester !== 'all'" class="toolbar-select-wrap year-select">
+          <select v-model.number="filterYear" class="toolbar-select">
+            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="export-actions">
+        <button class="export-btn" @click="exportCsv" title="Exportar CSV con Base Imponible e IVA 21%">
+          <Download :size="15" />
+          <span>Gestoría (.csv)</span>
+        </button>
+        <button class="export-btn secondary" @click="printReport" title="Imprimir informe o guardar PDF">
+          <Printer :size="15" />
+          <span>Imprimir / PDF</span>
+        </button>
       </div>
     </div>
 
@@ -347,6 +536,20 @@ onMounted(() => {
                 <span>{{ st.brand }}</span>
                 <small v-if="st.selected_fuel_price">{{ st.selected_fuel_price.toFixed(3) }}€</small>
               </button>
+            </div>
+          </div>
+
+          <!-- Vehicle Selector -->
+          <div v-if="vehicles.length > 0" class="form-group">
+            <label class="field-label">Vehículo asignado</label>
+            <div class="input-icon-wrap">
+              <Car :size="16" class="field-icon" />
+              <select v-model="selectedVehicleId" class="form-select">
+                <option value="">(Sin vehículo asignado)</option>
+                <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                  {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
+                </option>
+              </select>
             </div>
           </div>
 
@@ -479,11 +682,13 @@ onMounted(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-if="logs.length === 0" class="empty-state">
+    <div v-if="filteredLogs.length === 0" class="empty-state">
       <ReceiptText :size="52" class="empty-icon" />
-      <h3>No tenés repostajes registrados</h3>
-      <p>Registrá tu primer llenado pulsando en "Nuevo Repostaje" o directamente desde el detalle de cualquier gasolinera.</p>
-      <button class="empty-action-btn" @click="openNewRefuelForm">
+      <h3 v-if="logs.length === 0">No tenés repostajes registrados</h3>
+      <h3 v-else>No hay repostajes con los filtros seleccionados</h3>
+      <p v-if="logs.length === 0">Registrá tu primer llenado pulsando en "Nuevo Repostaje" o directamente desde el detalle de cualquier gasolinera.</p>
+      <p v-else>Probá cambiando el trimestre o el vehículo en la barra superior.</p>
+      <button v-if="logs.length === 0" class="empty-action-btn" @click="openNewRefuelForm">
         <Plus :size="16" />
         <span>Añadir primer repostaje</span>
       </button>
@@ -491,7 +696,7 @@ onMounted(() => {
 
     <!-- Chronological Refuel History List -->
     <div v-else class="logs-list">
-      <article v-for="item in logs" :key="item.id" class="refuel-card">
+      <article v-for="item in filteredLogs" :key="item.id" class="refuel-card">
         <div class="card-left">
           <div class="station-meta">
             <h4 class="card-station-name">{{ item.stationName }}</h4>
@@ -499,6 +704,10 @@ onMounted(() => {
           </div>
 
           <div class="badge-row">
+            <span v-if="item.vehicleAlias" class="pill-vehicle">
+              <Car :size="11" />
+              <span>{{ item.vehicleAlias }} ({{ item.vehiclePlate }})</span>
+            </span>
             <span class="pill-fuel">{{ item.fuelType.toUpperCase() }}</span>
             <span class="pill-data">{{ item.pricePerLiter.toFixed(3) }} €/L</span>
             <span class="pill-data">{{ item.liters.toFixed(2) }} L</span>
@@ -528,6 +737,85 @@ onMounted(() => {
           </div>
         </div>
       </article>
+    </div>
+
+    <!-- Voluntary Support Modal on high savings -->
+    <div v-if="showSupportModal" class="modal-backdrop" @click.self="showSupportModal = false">
+      <div class="support-modal-card">
+        <div class="support-icon">☕</div>
+        <h3>¡Ahorraste {{ savedAmountPrompt.toFixed(2) }} € en este repostaje!</h3>
+        <p>
+          LlenoPorfa es un proyecto independiente y gratuito para ayudarte a pagar lo mínimo en cada repostaje.
+          Si la app te ayuda a ahorrar mes a mes, podés colaborar voluntariamente para mantener los servidores activos.
+        </p>
+        <div class="support-actions">
+          <a
+            :href="supportUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="support-btn-primary"
+            @click="showSupportModal = false"
+          >
+            <Heart :size="16" />
+            <span>Invitar a un café</span>
+          </a>
+          <button class="support-btn-secondary" @click="showSupportModal = false">
+            Ahora no
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Hidden Printable Report for @media print -->
+    <div class="print-report-container">
+      <div class="print-header">
+        <h2>LlenoPorfa — Informe de Repostajes para Contabilidad / Gestoría</h2>
+        <div class="print-meta-grid">
+          <div v-if="settings.fiscalName"><strong>Razón Social:</strong> {{ settings.fiscalName }}</div>
+          <div v-if="settings.fiscalNif"><strong>CIF / NIF:</strong> {{ settings.fiscalNif }}</div>
+          <div><strong>Período:</strong> {{ filterTrimester === 'all' ? 'Todo el histórico' : `${filterTrimester} ${filterYear}` }}</div>
+          <div><strong>Fecha Emisión:</strong> {{ new Date().toLocaleDateString('es-ES') }}</div>
+        </div>
+      </div>
+
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Gasolinera</th>
+            <th>Vehículo</th>
+            <th>Carburante</th>
+            <th>Litros</th>
+            <th>€/Litro</th>
+            <th>Base Imponible</th>
+            <th>IVA (21%)</th>
+            <th>Total (€)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="l in filteredLogs" :key="l.id">
+            <td>{{ new Date(l.date).toLocaleDateString('es-ES') }}</td>
+            <td>{{ l.stationName }}</td>
+            <td>{{ l.vehicleAlias ? `${l.vehicleAlias} (${l.vehiclePlate})` : '-' }}</td>
+            <td>{{ l.fuelType }}</td>
+            <td>{{ l.liters.toFixed(2) }} L</td>
+            <td>{{ l.pricePerLiter.toFixed(3) }} €</td>
+            <td>{{ (l.totalAmount / 1.21).toFixed(2) }} €</td>
+            <td>{{ (l.totalAmount - l.totalAmount / 1.21).toFixed(2) }} €</td>
+            <td><strong>{{ l.totalAmount.toFixed(2) }} €</strong></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="4">Totales Período</th>
+            <th>{{ displayedStats.totalLiters.toFixed(2) }} L</th>
+            <th>-</th>
+            <th>{{ (displayedStats.totalSpent / 1.21).toFixed(2) }} €</th>
+            <th>{{ (displayedStats.totalSpent - displayedStats.totalSpent / 1.21).toFixed(2) }} €</th>
+            <th>{{ displayedStats.totalSpent.toFixed(2) }} €</th>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
 </template>
@@ -1071,6 +1359,262 @@ onMounted(() => {
 
     &:hover {
       background: var(--color-primary-dark);
+    }
+  }
+}
+
+.filters-toolbar {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+
+  .filter-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toolbar-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    .select-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .toolbar-select {
+      appearance: none;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 28px 6px 30px;
+      cursor: pointer;
+      min-height: 34px;
+
+      &:focus {
+        border-color: var(--color-primary);
+        outline: none;
+      }
+    }
+
+    &.year-select .toolbar-select {
+      padding-left: 12px;
+    }
+  }
+
+  .export-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.775rem;
+      font-weight: 700;
+      background: var(--color-primary);
+      color: #ffffff;
+      min-height: 34px;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--color-primary-dark);
+      }
+
+      &.secondary {
+        background: var(--bg-surface-subtle);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+
+        &:hover {
+          background: var(--color-primary-light);
+          border-color: var(--color-primary);
+          color: var(--color-primary-dark);
+        }
+      }
+    }
+  }
+}
+
+.pill-vehicle {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.725rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  [data-theme="dark"] & {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+  }
+}
+
+.support-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  animation: modalPop 0.25s ease-out;
+
+  .support-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  p {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .support-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 8px;
+
+    .support-btn-primary {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      background: #f59e0b;
+      color: #ffffff;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #d97706;
+      }
+    }
+
+    .support-btn-secondary {
+      padding: 10px 14px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+
+      &:hover {
+        color: var(--text-main);
+      }
+    }
+  }
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.print-report-container {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-report-container,
+  .print-report-container * {
+    visibility: visible;
+  }
+
+  .print-report-container {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000000;
+    background: #ffffff;
+    padding: 20px;
+
+    .print-header {
+      margin-bottom: 24px;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 12px;
+
+      h2 {
+        font-size: 16pt;
+        margin-bottom: 12px;
+      }
+
+      .print-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        font-size: 9pt;
+      }
+    }
+
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+
+      th, td {
+        border: 1px solid #cccccc;
+        padding: 6px 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #f3f4f6;
+        font-weight: bold;
+      }
+
+      tfoot th {
+        background: #e5e7eb;
+        font-weight: bold;
+      }
     }
   }
 }

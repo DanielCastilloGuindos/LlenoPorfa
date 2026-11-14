@@ -15,6 +15,8 @@ import { useStations } from '../composables/useStations';
 import { useSettings } from '../composables/useSettings';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useMarket } from '../composables/useMarket';
+import { useVisitDetector } from '../composables/useVisitDetector';
+import { useTelemetry } from '../composables/useTelemetry';
 import { useHaptics } from '../composables/useHaptics';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
@@ -38,7 +40,15 @@ const { calculateTankSavings, fuel } = useStations();
 const { settings } = useSettings();
 const { locationState } = useGeolocation();
 const { marketData, openBarometer } = useMarket();
+const { registerPendingVisit } = useVisitDetector();
+const { trackEvent } = useTelemetry();
 const { light, success, medium } = useHaptics();
+
+const handleNavClick = (navApp: string) => {
+  if (props.station) {
+    registerPendingVisit(props.station, navApp, fuel.value);
+  }
+};
 
 const isFav = computed(() => (props.station ? isFavorite(props.station.id) : false));
 const savings = computed(() =>
@@ -191,6 +201,13 @@ watch(
   () => props.station,
   (newStation) => {
     if (newStation) {
+      trackEvent('station_detail_viewed', {
+        stationId: newStation.id,
+        stationBrand: newStation.brand,
+        fuelType: fuel.value,
+        province: newStation.province,
+      });
+
       nextTick(() => {
         if (modalSheet.value) {
           gsap.fromTo(
@@ -417,6 +434,7 @@ watch(
             class="direct-nav-logo"
             title="Abrir en Google Maps"
             aria-label="Google Maps"
+            @click="handleNavClick('google_maps')"
           >
             <GoogleMapsIcon :size="44" />
           </a>
@@ -428,6 +446,7 @@ watch(
             class="direct-nav-logo"
             title="Abrir en Waze"
             aria-label="Waze"
+            @click="handleNavClick('waze')"
           >
             <WazeIcon :size="44" />
           </a>
@@ -439,6 +458,7 @@ watch(
             class="direct-nav-logo"
             title="Abrir en Apple Maps"
             aria-label="Apple Maps"
+            @click="handleNavClick('apple_maps')"
           >
             <AppleMapsIcon :size="44" />
           </a>

@@ -30,6 +30,21 @@
         "typescript": "^5.7.2",
       },
     },
+    "apps/manager": {
+      "name": "@llenoporfa/manager",
+      "version": "0.1.0",
+      "dependencies": {
+        "@astrojs/vue": "^4.5.0",
+        "astro": "^4.16.0",
+        "gsap": "^3.12.5",
+        "lucide-vue-next": "^0.468.0",
+        "vue": "^3.5.13",
+      },
+      "devDependencies": {
+        "sass": "^1.83.0",
+        "typescript": "^5.7.2",
+      },
+    },
   },
   "packages": {
     "@antfu/utils": ["@antfu/utils@0.7.10", "", {}, "sha512-+562v9k4aI80m1+VuMHehNJWLOFjBnXn3tdOitzD0il5b7smkSBal4+a3oKiQTbrwMmN/TBUMDvbdoWDehgOww=="],
@@ -223,6 +238,8 @@
     "@llenoporfa/api": ["@llenoporfa/api@workspace:apps/api"],
 
     "@llenoporfa/client": ["@llenoporfa/client@workspace:apps/client"],
+
+    "@llenoporfa/manager": ["@llenoporfa/manager@workspace:apps/manager"],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 

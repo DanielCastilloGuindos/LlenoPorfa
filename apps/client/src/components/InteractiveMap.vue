@@ -4,6 +4,7 @@ import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-nex
 import type { Station, Coordinates } from '../types';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
+import { useVisitDetector } from '../composables/useVisitDetector';
 import { useHaptics } from '../composables/useHaptics';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
@@ -32,7 +33,8 @@ let resizeObserver: ResizeObserver | null = null;
 const markerMap = new Map<string, any>();
 
 const { locationState, requestCurrentLocation } = useGeolocation();
-const { calculateTankSavings } = useStations();
+const { calculateTankSavings, fuel } = useStations();
+const { registerPendingVisit } = useVisitDetector();
 const { light, medium } = useHaptics();
 
 // 100% Free OpenStreetMap tile URL (NO API KEY REQUIRED EVER)
@@ -320,7 +322,7 @@ onBeforeUnmount(() => {
             target="_blank"
             rel="noopener noreferrer"
             class="gps-logo-item"
-            @click.stop
+            @click.stop="registerPendingVisit(selectedStation, 'google_maps', fuel)"
             title="Abrir en Google Maps"
             aria-label="Google Maps"
           >
@@ -331,7 +333,7 @@ onBeforeUnmount(() => {
             target="_blank"
             rel="noopener noreferrer"
             class="gps-logo-item"
-            @click.stop
+            @click.stop="registerPendingVisit(selectedStation, 'waze', fuel)"
             title="Abrir en Waze"
             aria-label="Waze"
           >
@@ -342,7 +344,7 @@ onBeforeUnmount(() => {
             target="_blank"
             rel="noopener noreferrer"
             class="gps-logo-item"
-            @click.stop
+            @click.stop="registerPendingVisit(selectedStation, 'apple_maps', fuel)"
             title="Abrir en Apple Maps"
             aria-label="Apple Maps"
           >

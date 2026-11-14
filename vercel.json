@@ -12,7 +12,22 @@
       }
     },
     {
+      "src": "apps/register/api/*.rs",
+      "use": "vercel-rust@4.0.9",
+      "config": {
+        "maxDuration": 30,
+        "memory": 1024
+      }
+    },
+    {
       "src": "apps/client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "apps/manager/package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -41,6 +56,28 @@
       "headers": {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600"
       }
+    },
+    {
+      "src": "/api/register/event",
+      "dest": "/apps/register/api/event",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0"
+      }
+    },
+    {
+      "src": "/api/register/stats",
+      "dest": "/apps/register/api/stats",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0"
+      }
+    },
+    {
+      "src": "/manager/(.*)",
+      "dest": "/apps/manager/$1"
+    },
+    {
+      "src": "/manager",
+      "dest": "/apps/manager/index.html"
     },
     {
       "src": "/sw.js",

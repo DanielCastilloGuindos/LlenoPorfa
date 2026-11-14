@@ -4,6 +4,7 @@ import { Heart, Clock, Sparkles } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
+import { useVisitDetector } from '../composables/useVisitDetector';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
 import AppleMapsIcon from './icons/AppleMapsIcon.vue';
@@ -18,7 +19,8 @@ const emit = defineEmits<{
 }>();
 
 const { isFavorite, toggleFavorite } = useFavorites();
-const { calculateTankSavings, setHoveredStation } = useStations();
+const { calculateTankSavings, setHoveredStation, fuel } = useStations();
+const { registerPendingVisit } = useVisitDetector();
 
 const isFav = computed(() => isFavorite(props.station.id));
 const savings = computed(() => calculateTankSavings(props.station.selected_fuel_price));
@@ -113,6 +115,7 @@ const handleFavoriteClick = (e: Event) => {
           class="gps-logo-item"
           title="Abrir en Google Maps"
           aria-label="Google Maps"
+          @click="registerPendingVisit(station, 'google_maps', fuel)"
         >
           <GoogleMapsIcon :size="20" />
         </a>
@@ -123,6 +126,7 @@ const handleFavoriteClick = (e: Event) => {
           class="gps-logo-item"
           title="Abrir en Waze"
           aria-label="Waze"
+          @click="registerPendingVisit(station, 'waze', fuel)"
         >
           <WazeIcon :size="20" />
         </a>
@@ -133,6 +137,7 @@ const handleFavoriteClick = (e: Event) => {
           class="gps-logo-item"
           title="Abrir en Apple Maps"
           aria-label="Apple Maps"
+          @click="registerPendingVisit(station, 'apple_maps', fuel)"
         >
           <AppleMapsIcon :size="20" />
         </a>
