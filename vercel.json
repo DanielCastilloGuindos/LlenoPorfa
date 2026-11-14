@@ -5,7 +5,11 @@
   "builds": [
     {
       "src": "apps/api/api/*.rs",
-      "use": "vercel-rust@4.0.9"
+      "use": "vercel-rust@4.0.9",
+      "config": {
+        "maxDuration": 60,
+        "memory": 1024
+      }
     },
     {
       "src": "apps/client/package.json",
@@ -15,6 +19,7 @@
       }
     }
   ],
+  "regions": ["cdg1", "fra1"],
   "routes": [
     {
       "src": "/api/stations",

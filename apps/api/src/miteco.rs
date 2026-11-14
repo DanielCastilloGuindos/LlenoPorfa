@@ -135,10 +135,11 @@ pub fn normalize_brand(raw: &str) -> String {
 /// Builds a hardened reqwest client tailored for government SSL endpoints.
 fn build_http_client() -> Result<reqwest::Client, ApiError> {
     reqwest::Client::builder()
+        .http1_only() // Enforce HTTP/1.1: IIS 10.0 aborts HTTP/2 streams on >10MB responses (RST_STREAM)
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         .danger_accept_invalid_certs(true)
-        .timeout(Duration::from_secs(20))
-        .connect_timeout(Duration::from_secs(6))
+        .timeout(Duration::from_secs(25))
+        .connect_timeout(Duration::from_secs(8))
         .tcp_nodelay(true)
         .build()
         .map_err(|e| ApiError::Internal(format!("Failed to build HTTP client: {}", e)))
@@ -198,23 +199,35 @@ async fn fetch_from_url(client: &reqwest::Client, url: &str) -> Result<MitecoEnv
     Ok(envelope)
 }
 
-/// Fetches raw MITECO dataset attempting primary endpoint with automatic fallback to secondary.
+/// Fetches raw MITECO dataset attempting primary endpoint with automatic retry and secondary fallback.
 pub async fn fetch_raw_miteco() -> Result<MitecoEnvelope, ApiError> {
     let client = build_http_client()?;
 
-    // 1. Try primary MITECO URL
-    match fetch_from_url(&client, MITECO_URL_PRIMARY).await {
-        Ok(envelope) => Ok(envelope),
-        Err(primary_err) => {
-            // 2. Fallback to secondary MITECO URL
-            match fetch_from_url(&client, MITECO_URL_SECONDARY).await {
-                Ok(envelope) => Ok(envelope),
-                Err(secondary_err) => Err(ApiError::UpstreamUnavailable(format!(
-                    "All MITECO endpoints failed. Primary error: [{}]. Secondary fallback error: [{}]",
-                    primary_err, secondary_err
-                ))),
+    // 1. Try primary endpoint (energia) with up to 2 attempts
+    let mut last_error = None;
+    for attempt in 1..=2 {
+        match fetch_from_url(&client, MITECO_URL_PRIMARY).await {
+            Ok(envelope) => return Ok(envelope),
+            Err(e) => {
+                last_error = Some(e);
+                if attempt < 2 {
+                    tokio::time::sleep(Duration::from_millis(600)).await;
+                }
             }
         }
+    }
+
+    let energia_err = last_error.unwrap_or_else(|| {
+        ApiError::UpstreamUnavailable("Unknown error fetching from primary endpoint".to_string())
+    });
+
+    // 2. Fallback to secondary endpoint (sede)
+    match fetch_from_url(&client, MITECO_URL_SECONDARY).await {
+        Ok(envelope) => Ok(envelope),
+        Err(secondary_err) => Err(ApiError::UpstreamUnavailable(format!(
+            "All MITECO endpoints failed. Primary (energia): [{}]. Secondary fallback error: [{}]",
+            energia_err, secondary_err
+        ))),
     }
 }
 
