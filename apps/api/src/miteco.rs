@@ -8,10 +8,10 @@ use crate::error::ApiError;
 use crate::models::{FuelPrices, Station};
 
 pub const MITECO_URL_PRIMARY: &str =
-    "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/";
+    "https://energia.serviciosmin.gob.es/ServiciosRestCarburantes/PreciosCarburantes/EstacionesTerrestres/";
 
 pub const MITECO_URL_SECONDARY: &str =
-    "https://energia.serviciosmin.gob.es/ServiciosRestCarburantes/PreciosCarburantes/EstacionesTerrestres/";
+    "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/";
 
 const CACHE_TTL_SECS: u64 = 900; // 15 minutes
 
@@ -321,4 +321,25 @@ pub fn extract_popular_brands(stations: &[Station]) -> Vec<String> {
     let mut list: Vec<String> = brands_set.into_iter().collect();
     list.sort();
     list
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_live_miteco_fetch() {
+        let res = fetch_raw_miteco().await;
+        match res {
+            Ok(env) => {
+                println!("SUCCESS! Fecha: {:?}, count: {}", env.fecha, env.lista_eess_precio.len());
+                let normalized = normalize_stations(env.lista_eess_precio);
+                println!("Normalized count: {}", normalized.len());
+                assert!(!normalized.is_empty());
+            }
+            Err(e) => {
+                panic!("Miteco fetch failed: {:?}", e);
+            }
+        }
+    }
 }
