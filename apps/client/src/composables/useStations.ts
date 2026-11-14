@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type {
   FuelId,
   SortMode,
@@ -11,15 +11,17 @@ import { useSettings } from './useSettings';
 
 const LOCAL_STORAGE_STATIONS_BACKUP = 'llenoporfa_last_stations_cache_v1';
 
-const fuel = ref<FuelId>('g95_e5');
-const radius = ref<number>(10);
+const { settings } = useSettings();
+
+const fuel = ref<FuelId>(settings.value.defaultFuel || 'g95_e5');
+const radius = ref<number>(settings.value.defaultRadius || 10);
 const brand = ref<string>('all');
 const open24h = ref<boolean>(false);
 const sort = ref<SortMode>('price');
 const localFilterText = ref<string>('');
 
 const stations = ref<Station[]>([]);
-const loading = ref<boolean>(false);
+const loading = ref<boolean>(true); // Start as loading so skeleton cards appear while searching
 const error = ref<string | null>(null);
 const isOfflineMode = ref<boolean>(false);
 
@@ -70,6 +72,25 @@ const filtersCatalog = ref<FiltersApiResponse>({
 export function useStations() {
   const { locationState } = useGeolocation();
   const { settings } = useSettings();
+
+  // Watch settings changes and apply them directly to search and map filters
+  watch(
+    () => [settings.value.defaultFuel, settings.value.defaultRadius] as const,
+    ([newFuel, newRadius]) => {
+      let changed = false;
+      if (newFuel && fuel.value !== newFuel) {
+        fuel.value = newFuel;
+        changed = true;
+      }
+      if (newRadius && radius.value !== newRadius) {
+        radius.value = newRadius;
+        changed = true;
+      }
+      if (changed) {
+        fetchStations();
+      }
+    }
+  );
 
   const fetchFilters = async () => {
     try {

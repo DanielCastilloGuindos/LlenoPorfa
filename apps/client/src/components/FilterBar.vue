@@ -174,7 +174,7 @@ const handleOpen24hToggle = () => {
             <label class="filter-label">Radio de búsqueda:</label>
             <div class="radius-chips">
               <button
-                v-for="r in [2, 5, 10, 25, 50]"
+                v-for="r in [2, 5, 10, 20, 35, 50]"
                 :key="r"
                 class="chip"
                 :class="{ active: radius === r }"
@@ -327,10 +327,12 @@ const handleOpen24hToggle = () => {
 .sticky-stats-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
   overflow-x: auto;
-  padding-top: 4px;
+  padding: 6px 4px 2px;
   border-top: 1px dashed var(--border-color);
+  width: 100%;
 
   .stat-item {
     display: inline-flex;
@@ -368,9 +370,9 @@ const handleOpen24hToggle = () => {
 .filters-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 180;
+  z-index: 250; // Above bottom navigation bar
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -388,15 +390,20 @@ const handleOpen24hToggle = () => {
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 500px;
-  padding: 12px 18px 24px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 20px calc(var(--bottom-nav-height) + var(--safe-bottom) + 24px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   touch-action: pan-y;
 
   @include desktop {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
+    padding: 20px;
   }
 }
 

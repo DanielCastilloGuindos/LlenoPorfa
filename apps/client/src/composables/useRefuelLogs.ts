@@ -10,10 +10,23 @@ export interface PrefillData {
   stationId?: string;
   stationAddress?: string;
   pricePerLiter?: number;
+  averagePrice?: number;
   fuelType?: FuelId;
 }
 
 const activePrefill = ref<PrefillData | null>(null);
+
+// Immediate load if window is defined
+if (typeof window !== 'undefined') {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      logs.value = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('Error parsing refuel logs from localStorage', e);
+  }
+}
 
 export function useRefuelLogs() {
   const loadLogs = () => {
@@ -58,12 +71,13 @@ export function useRefuelLogs() {
     persist();
   };
 
-  const setPrefillFromStation = (station: Station, fuel: FuelId) => {
+  const setPrefillFromStation = (station: Station, fuel: FuelId, averagePrice?: number) => {
     activePrefill.value = {
       stationName: station.brand,
       stationId: station.id,
       stationAddress: station.address,
       pricePerLiter: station.selected_fuel_price ?? undefined,
+      averagePrice: averagePrice ?? undefined,
       fuelType: fuel,
     };
   };
@@ -76,11 +90,13 @@ export function useRefuelLogs() {
   const stats = computed(() => {
     const totalSpent = logs.value.reduce((acc, l) => acc + (l.totalAmount || 0), 0);
     const totalLiters = logs.value.reduce((acc, l) => acc + (l.liters || 0), 0);
+    const totalSavings = logs.value.reduce((acc, l) => acc + (l.savingsEur && l.savingsEur > 0 ? l.savingsEur : 0), 0);
     const avgPricePerLiter = totalLiters > 0 ? totalSpent / totalLiters : 0;
 
     return {
       totalSpent: Math.round(totalSpent * 100) / 100,
       totalLiters: Math.round(totalLiters * 100) / 100,
+      totalSavings: Math.round(totalSavings * 100) / 100,
       avgPricePerLiter: Math.round(avgPricePerLiter * 1000) / 1000,
       count: logs.value.length,
     };

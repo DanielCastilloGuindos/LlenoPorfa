@@ -26,6 +26,16 @@ export function useSettings() {
     applyTheme(settings.value.theme);
   };
 
+  // Immediate load on script execution if window is available
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        settings.value = { ...defaultSettings, ...JSON.parse(raw) };
+      }
+    } catch (_) {}
+  }
+
   const saveSettings = (newSettings: Partial<UserSettings>) => {
     settings.value = { ...settings.value, ...newSettings };
     if (typeof window !== 'undefined') {

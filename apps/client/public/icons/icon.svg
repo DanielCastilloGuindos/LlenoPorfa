@@ -8,16 +8,16 @@
       <stop offset="0%" stop-color="#fef08a" />
       <stop offset="100%" stop-color="#eab308" />
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-opacity="0.25" />
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-opacity="0.25" />
     </filter>
   </defs>
 
-  <!-- Background Squircle -->
-  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <!-- Full-bleed background with zero corner radius so Android / iOS maskable shapes never show odd borders -->
+  <rect width="512" height="512" fill="url(#bgGrad)" />
 
-  <!-- Inner Content with Shadow -->
-  <g filter="url(#shadow)" transform="translate(64, 64)">
+  <!-- Inner Content scaled and centered inside safe zone -->
+  <g filter="url(#shadow)" transform="translate(86, 76) scale(0.88)">
     <!-- Main Pump Body -->
     <path d="M72 384 L72 80 C72 58 90 40 112 40 L240 40 C262 40 280 58 280 80 L280 384 Z" fill="#ffffff" />
     <!-- Pump Base -->

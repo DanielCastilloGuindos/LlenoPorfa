@@ -86,8 +86,15 @@ const invalidateSize = () => {
   });
 };
 
+const panToStation = (station: Station) => {
+  if (!mapInstance) return;
+  mapInstance.setView([station.latitude, station.longitude], 16, { animate: true });
+  updateSelectedMarker(station.id);
+};
+
 defineExpose({
   invalidateSize,
+  panToStation,
 });
 
 const renderUserLocation = () => {

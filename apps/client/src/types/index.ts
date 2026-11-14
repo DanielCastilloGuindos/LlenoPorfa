@@ -71,6 +71,7 @@ export interface RefuelLog {
   totalAmount: number;
   odometerKm?: number | null;
   notes?: string;
+  savingsEur?: number;
   createdAt: number;
 }
 

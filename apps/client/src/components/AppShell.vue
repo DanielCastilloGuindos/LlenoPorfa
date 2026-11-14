@@ -26,8 +26,13 @@ const showCityModalFromBanner = ref(false);
 const tabContentEl = ref<HTMLElement | null>(null);
 const interactiveMapRef = ref<any>(null);
 
+const detailModalStation = ref<Station | null>(null);
+const mapPreviewStation = ref<Station | null>(null);
+
 const {
+  stations,
   filteredStations,
+  stats,
   loading,
   error,
   selectedStation,
@@ -53,6 +58,18 @@ const handleUrlShortcuts = () => {
   }
 };
 
+const checkUrlStation = () => {
+  if (typeof window === 'undefined') return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const stationId = urlParams.get('station');
+  if (stationId) {
+    const found = stations.value.find((s) => s.id === stationId);
+    if (found) {
+      detailModalStation.value = found;
+    }
+  }
+};
+
 // Tab Transition and Map Invalidation
 watch(activeTab, (newTab) => {
   nextTick(() => {
@@ -71,15 +88,37 @@ watch(activeTab, (newTab) => {
 
 const handleStationSelect = (station: Station | null) => {
   selectStation(station);
+  detailModalStation.value = station;
+};
+
+const handleMapStationSelect = (station: Station | null) => {
+  mapPreviewStation.value = station;
+};
+
+const handleMapOpenDetail = (station: Station) => {
+  mapPreviewStation.value = null;
+  detailModalStation.value = station;
+  selectStation(station);
+};
+
+const handleOpenOnMap = (station: Station) => {
+  detailModalStation.value = null;
+  activeTab.value = 'map';
+  mapPreviewStation.value = station;
+  nextTick(() => {
+    interactiveMapRef.value?.panToStation(station);
+  });
 };
 
 const handleModalClose = () => {
+  detailModalStation.value = null;
   selectStation(null);
 };
 
 // Quick action from station detail: "Registrar repostaje aquí"
 const handleRecordRefuel = (station: Station) => {
-  setPrefillFromStation(station, fuel.value);
+  setPrefillFromStation(station, fuel.value, stats.value.avgPrice ?? undefined);
+  detailModalStation.value = null;
   selectStation(null);
   activeTab.value = 'refuel';
 };
@@ -89,6 +128,12 @@ const handleSelectManualCity = (name: string, coords: { lat: number; lng: number
   showCityModalFromBanner.value = false;
   fetchStations();
 };
+
+watch(stations, () => {
+  if (!detailModalStation.value) {
+    checkUrlStation();
+  }
+});
 
 onMounted(async () => {
   handleUrlShortcuts();
@@ -101,6 +146,7 @@ onMounted(async () => {
     // Madrid fallback is active
   } finally {
     await fetchStations();
+    checkUrlStation();
   }
 });
 </script>
@@ -166,21 +212,24 @@ onMounted(async () => {
             class="split-map-container"
             :class="{ 'mobile-hidden': activeTab === 'search' }"
           >
-            <!-- Floating Filter Bar on Mobile Map tab -->
-            <div v-if="activeTab === 'map'" class="floating-map-filters">
+            <!-- Search & Filter Controls on Mobile Map tab -->
+            <div class="map-mobile-search-controls">
+              <SearchHeader @open-save-modal="showSaveModal = true" />
               <FilterBar />
             </div>
 
-            <InteractiveMap
-              ref="interactiveMapRef"
-              :stations="filteredStations"
-              :selected-station="selectedStation"
-              :hovered-station-id="hoveredStationId"
-              :center="locationState.coords"
-              :is-active="activeTab === 'map'"
-              @select-station="handleStationSelect"
-              @open-detail="handleStationSelect"
-            />
+            <div class="map-view-body">
+              <InteractiveMap
+                ref="interactiveMapRef"
+                :stations="filteredStations"
+                :selected-station="mapPreviewStation"
+                :hovered-station-id="hoveredStationId"
+                :center="locationState.coords"
+                :is-active="activeTab === 'map'"
+                @select-station="handleMapStationSelect"
+                @open-detail="handleMapOpenDetail"
+              />
+            </div>
           </div>
         </div>
       </template>
@@ -215,9 +264,10 @@ onMounted(async () => {
 
     <!-- Station Detail Sliding Sheet / Modal with MiniMap & Official GPS Logos -->
     <StationDetailModal
-      :station="selectedStation"
+      :station="detailModalStation"
       @close="handleModalClose"
       @record-refuel="handleRecordRefuel"
+      @open-on-map="handleOpenOnMap"
     />
 
     <!-- Save Search Preset Modal -->
@@ -338,7 +388,26 @@ onMounted(async () => {
     .split-map-container {
       width: 100%;
       height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom));
+      display: flex;
+      flex-direction: column;
       position: relative;
+    }
+
+    .map-mobile-search-controls {
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-view-body {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
     }
   }
 
@@ -361,6 +430,18 @@ onMounted(async () => {
       flex: 1;
       height: 100%;
       position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-mobile-search-controls {
+      display: none;
+    }
+
+    .map-view-body {
+      flex: 1;
+      height: 100%;
+      position: relative;
     }
   }
 }
@@ -378,21 +459,6 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-}
-
-.floating-map-filters {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  z-index: 500;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-
-  @include desktop {
-    display: none;
-  }
 }
 
 .tab-view-container {

@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { MapPin } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
 
 const props = defineProps<{
   station: Station;
   userCoords: Coordinates | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'open-on-map', station: Station): void;
 }>();
 
 const miniMapContainer = ref<HTMLElement | null>(null);
@@ -26,8 +31,12 @@ const initMiniMap = async () => {
     center: stLatLng,
     zoom: 14,
     zoomControl: false,
-    dragging: true,
+    dragging: false,
+    touchZoom: false,
     scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
     attributionControl: false, // compact display inside modal
   });
 
@@ -123,8 +132,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mini-map-box">
+  <div
+    class="mini-map-box"
+    role="button"
+    tabindex="0"
+    title="Abrir en el mapa interactivo"
+    @click="emit('open-on-map', station)"
+    @keydown.enter.prevent="emit('open-on-map', station)"
+  >
     <div ref="miniMapContainer" class="mini-map-element"></div>
+    <div class="mini-map-badge">
+      <MapPin :size="12" />
+      <span>Abrir en mapa</span>
+    </div>
     <div class="mini-map-legend">
       <div class="legend-item">
         <span class="user-dot"></span>
@@ -149,11 +169,43 @@ onBeforeUnmount(() => {
   position: relative;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.99);
+  }
 }
 
 .mini-map-element {
   width: 100%;
   height: 100%;
+  pointer-events: none; /* Let parent container capture clicks */
+}
+
+.mini-map-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 400;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
 }
 
 .mini-map-legend {

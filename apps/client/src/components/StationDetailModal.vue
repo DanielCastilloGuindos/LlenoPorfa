@@ -28,6 +28,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'record-refuel', station: Station): void;
+  (e: 'open-on-map', station: Station): void;
 }>();
 
 const modalSheet = ref<HTMLElement | null>(null);
@@ -61,17 +62,18 @@ const wazeUrl = computed(() => {
 const handleShare = async () => {
   if (!props.station) return;
   light();
+  const shareUrl = `${window.location.origin}/?station=${props.station.id}`;
   const shareData = {
     title: `${props.station.brand} - llenoPorfa`,
     text: `Precios en ${props.station.brand} (${props.station.municipality}): ${props.station.address}`,
-    url: window.location.href,
+    url: shareUrl,
   };
   try {
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
       await navigator.clipboard.writeText(
-        `${shareData.title}\n${shareData.text}\n${googleMapsUrl.value}`
+        `${shareData.title}\n${shareData.text}\n${shareUrl}`
       );
       alert('¡Enlace copiado al portapapeles!');
     }
@@ -218,6 +220,7 @@ watch(
         <StationDetailMiniMap
           :station="station"
           :user-coords="locationState.coords"
+          @open-on-map="emit('open-on-map', $event)"
         />
       </div>
 
@@ -282,59 +285,41 @@ watch(
         </div>
       </div>
 
-      <!-- Navigation GPS Action Buttons with Modern Official Logos -->
+      <!-- Direct GPS Navigation Logos -->
       <div class="gps-navigation-section">
-        <div class="section-title-row">
-          <span class="section-heading">Abrir en navegador GPS</span>
-          <span class="section-sub">Iniciar ruta directa</span>
-        </div>
-        <div class="directions-actions">
+        <span class="section-heading">Abrir en navegador GPS</span>
+        <div class="direct-nav-logos">
           <a
             :href="googleMapsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="nav-app-card google"
-            title="Iniciar ruta en Google Maps"
+            class="direct-nav-logo"
+            title="Abrir en Google Maps"
+            aria-label="Google Maps"
           >
-            <div class="app-icon-badge">
-              <GoogleMapsIcon :size="24" />
-            </div>
-            <div class="app-meta">
-              <span class="app-name">Google Maps</span>
-              <span class="app-action">Navegar</span>
-            </div>
+            <GoogleMapsIcon :size="44" />
           </a>
 
           <a
             :href="wazeUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="nav-app-card waze"
-            title="Iniciar ruta en Waze"
+            class="direct-nav-logo"
+            title="Abrir en Waze"
+            aria-label="Waze"
           >
-            <div class="app-icon-badge">
-              <WazeIcon :size="24" />
-            </div>
-            <div class="app-meta">
-              <span class="app-name">Waze</span>
-              <span class="app-action">Ruta y radares</span>
-            </div>
+            <WazeIcon :size="44" />
           </a>
 
           <a
             :href="appleMapsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="nav-app-card apple"
-            title="Iniciar ruta en Apple Maps"
+            class="direct-nav-logo"
+            title="Abrir en Apple Maps"
+            aria-label="Apple Maps"
           >
-            <div class="app-icon-badge">
-              <AppleMapsIcon :size="24" />
-            </div>
-            <div class="app-meta">
-              <span class="app-name">Apple Maps</span>
-              <span class="app-action">Giro a giro</span>
-            </div>
+            <AppleMapsIcon :size="44" />
           </a>
         </div>
       </div>
@@ -620,130 +605,47 @@ watch(
 .gps-navigation-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
+  padding-top: 4px;
 
-  .section-title-row {
-    @include flex-between;
-    align-items: baseline;
-
-    .section-heading {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-    }
-
-    .section-sub {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      opacity: 0.8;
-    }
+  .section-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
   }
 
-  .directions-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+  .direct-nav-logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    width: 100%;
+    padding: 6px 0;
 
-    .nav-app-card {
-      display: flex;
-      flex-direction: column;
+    .direct-nav-logo {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 14px 8px 12px;
-      border-radius: var(--radius-lg);
-      background: var(--bg-surface-subtle);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      text-decoration: none;
-      min-height: 84px;
-      transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
+      padding: 4px;
+      line-height: 1;
+      opacity: 0.95;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  filter 0.2s ease,
+                  opacity 0.2s ease;
 
-      .app-icon-badge {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        @include flex-center;
-        background: var(--bg-surface);
-        border: 1px solid var(--border-color);
-        transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
-      }
-
-      .app-meta {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        width: 100%;
-
-        .app-name {
-          font-size: 0.775rem;
-          font-weight: 700;
-          color: var(--text-main);
-          white-space: nowrap;
-          letter-spacing: -0.01em;
-        }
-
-        .app-action {
-          font-size: 0.65rem;
-          font-weight: 500;
-          color: var(--text-muted);
-          white-space: nowrap;
-        }
-      }
-
-      // Brand themes & hover effects
-      &.google {
-        &:hover {
-          background: rgba(66, 133, 244, 0.05);
-          border-color: rgba(66, 133, 244, 0.45);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px -4px rgba(66, 133, 244, 0.2);
-
-          .app-icon-badge {
-            transform: scale(1.08);
-            border-color: rgba(66, 133, 244, 0.3);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
-          }
-        }
-      }
-
-      &.waze {
-        &:hover {
-          background: rgba(5, 178, 230, 0.06);
-          border-color: rgba(5, 178, 230, 0.5);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px -4px rgba(5, 178, 230, 0.22);
-
-          .app-icon-badge {
-            transform: scale(1.08);
-            border-color: rgba(5, 178, 230, 0.35);
-            box-shadow: 0 4px 12px rgba(5, 178, 230, 0.18);
-          }
-        }
-      }
-
-      &.apple {
-        &:hover {
-          background: rgba(14, 165, 233, 0.05);
-          border-color: rgba(14, 165, 233, 0.45);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px -4px rgba(14, 165, 233, 0.2);
-
-          .app-icon-badge {
-            transform: scale(1.08);
-            border-color: rgba(14, 165, 233, 0.3);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
-          }
-        }
+      &:hover {
+        opacity: 1;
+        transform: scale(1.2) translateY(-2px);
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
       }
 
       &:active {
-        transform: scale(0.96);
+        transform: scale(0.92);
       }
     }
   }

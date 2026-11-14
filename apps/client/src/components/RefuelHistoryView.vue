@@ -26,11 +26,12 @@ import gsap from 'gsap';
 
 const { logs, stats, activePrefill, addLog, updateLog, deleteLog, clearPrefill } = useRefuelLogs();
 const { settings } = useSettings();
-const { stations, fuel: currentFuelFilter } = useStations();
+const { stations, stats: stationsStats, fuel: currentFuelFilter } = useStations();
 const { favorites } = useFavorites();
 
 const isFormOpen = ref(false);
 const editingLogId = ref<string | null>(null);
+const prefillAvgPrice = ref<number | undefined>(undefined);
 
 // Form Fields
 const stationName = ref('');
@@ -166,7 +167,12 @@ const openNewRefuelForm = () => {
     if (activePrefill.value.pricePerLiter) {
       pricePerLiter.value = activePrefill.value.pricePerLiter;
     }
+    if (activePrefill.value.averagePrice) {
+      prefillAvgPrice.value = activePrefill.value.averagePrice;
+    }
     clearPrefill();
+  } else {
+    prefillAvgPrice.value = undefined;
   }
 
   isFormOpen.value = true;
@@ -197,6 +203,10 @@ const handleSave = () => {
     return;
   }
 
+  const avgP = prefillAvgPrice.value || stationsStats.value.avgPrice;
+  const calculatedSavings =
+    avgP && avgP > p ? Math.round((avgP - p) * l * 100) / 100 : undefined;
+
   const payload = {
     stationName: stationName.value.trim(),
     stationId: stationId.value,
@@ -206,6 +216,7 @@ const handleSave = () => {
     pricePerLiter: p,
     liters: l,
     totalAmount: t,
+    savingsEur: calculatedSavings,
     odometerKm: odometerKm.value !== '' ? Number(odometerKm.value) : null,
     notes: notes.value.trim() || undefined,
   };
@@ -271,6 +282,16 @@ onMounted(() => {
         <div class="stat-data">
           <span class="label">Gasto Total</span>
           <strong class="val">{{ stats.totalSpent.toFixed(2) }} €</strong>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="icon-wrap savings">
+          <Sparkles :size="18" />
+        </div>
+        <div class="stat-data">
+          <span class="label">Ahorro Estimado</span>
+          <strong class="val highlight">{{ stats.totalSavings.toFixed(2) }} €</strong>
         </div>
       </div>
 
@@ -481,6 +502,10 @@ onMounted(() => {
             <span class="pill-fuel">{{ item.fuelType.toUpperCase() }}</span>
             <span class="pill-data">{{ item.pricePerLiter.toFixed(3) }} €/L</span>
             <span class="pill-data">{{ item.liters.toFixed(2) }} L</span>
+            <span v-if="item.savingsEur && item.savingsEur > 0" class="pill-savings">
+              <Sparkles :size="11" />
+              <span>Ahorro: ~{{ item.savingsEur.toFixed(2) }} €</span>
+            </span>
             <span v-if="item.odometerKm" class="pill-km">{{ item.odometerKm.toLocaleString() }} km</span>
           </div>
 
@@ -559,29 +584,33 @@ onMounted(() => {
 // Stats row
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 
   @include mobile {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .stat-card {
     @include card-surface;
-    padding: 14px 16px;
+    padding: 12px 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 
     .icon-wrap {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-md);
       @include flex-center;
       flex-shrink: 0;
 
       &.euro {
         background: rgba(16, 185, 129, 0.15);
+        color: var(--color-primary);
+      }
+      &.savings {
+        background: rgba(16, 185, 129, 0.2);
         color: var(--color-primary);
       }
       &.drop {
@@ -599,17 +628,21 @@ onMounted(() => {
       flex-direction: column;
 
       .label {
-        font-size: 0.725rem;
+        font-size: 0.675rem;
         color: var(--text-muted);
         font-weight: 600;
         text-transform: uppercase;
       }
 
       .val {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         font-weight: 900;
         font-family: var(--font-mono);
         color: var(--text-main);
+
+        &.highlight {
+          color: var(--color-primary);
+        }
       }
     }
   }
@@ -681,6 +714,19 @@ onMounted(() => {
         padding: 2px 7px;
         border-radius: var(--radius-sm);
         font-family: var(--font-mono);
+      }
+
+      .pill-savings {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--color-primary);
+        font-size: 0.725rem;
+        font-weight: 700;
+        border: 1px solid rgba(16, 185, 129, 0.25);
       }
 
       .pill-km {
@@ -946,26 +992,39 @@ onMounted(() => {
 .quick-picker-box {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 
   .quick-chips {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: var(--radius-full);
+    }
 
     .quick-chip {
-      padding: 5px 10px;
-      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
       background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
-      font-size: 0.75rem;
+      font-size: 0.775rem;
       font-weight: 600;
       color: var(--text-main);
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 38px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
 
       small {
         color: var(--color-primary);
