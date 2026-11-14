@@ -8,6 +8,8 @@ import {
   Sparkles,
   Share2,
   ReceiptText,
+  Route,
+  Compass,
 } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
@@ -18,9 +20,6 @@ import { useMarket } from '../composables/useMarket';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useTelemetry } from '../composables/useTelemetry';
 import { useHaptics } from '../composables/useHaptics';
-import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
-import WazeIcon from './icons/WazeIcon.vue';
-import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 import StationDetailMiniMap from './StationDetailMiniMap.vue';
 import gsap from 'gsap';
 
@@ -333,7 +332,7 @@ watch(
         </div>
       </div>
 
-      <!-- Direct GPS Navigation Logos -->
+      <!-- Direct GPS Navigation with Lucide Icons -->
       <div class="gps-navigation-section">
         <span class="section-heading">Abrir en navegador GPS</span>
         <div class="gps-direct-logos">
@@ -346,7 +345,8 @@ watch(
             aria-label="Google Maps"
             @click="handleNavClick('google_maps')"
           >
-            <GoogleMapsIcon :size="20" />
+            <MapPin :size="16" />
+            <span>Google Maps</span>
           </a>
 
           <a
@@ -358,7 +358,8 @@ watch(
             aria-label="Waze"
             @click="handleNavClick('waze')"
           >
-            <WazeIcon :size="20" />
+            <Route :size="16" />
+            <span>Waze</span>
           </a>
 
           <a
@@ -370,7 +371,8 @@ watch(
             aria-label="Apple Maps"
             @click="handleNavClick('apple_maps')"
           >
-            <AppleMapsIcon :size="20" />
+            <Compass :size="16" />
+            <span>Apple Maps</span>
           </a>
         </div>
       </div>
@@ -473,15 +475,19 @@ watch(
 
 .modal-backdrop {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
-  z-index: 200;
+  z-index: 600;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 
   @include desktop {
+    bottom: 0;
     align-items: center;
     padding: 24px;
   }
@@ -494,10 +500,9 @@ watch(
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 560px;
-  max-height: 88vh;
-  max-height: 88dvh;
+  max-height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom) - 30px);
   overflow-y: auto;
-  padding: 14px 20px 28px;
+  padding: 14px 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -506,6 +511,7 @@ watch(
   @include desktop {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
+    max-height: 88dvh;
   }
 }
 
@@ -881,8 +887,10 @@ watch(
 }
 
 .gps-navigation-section {
-  @include flex-between;
-  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -896,30 +904,32 @@ watch(
   .gps-direct-logos {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
 
     .gps-logo-item {
+      flex: 1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: none;
-      border: none;
-      box-shadow: none;
-      padding: 2px;
-      line-height: 1;
-      opacity: 0.92;
-      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  opacity 0.2s ease,
-                  filter 0.2s ease;
+      gap: 6px;
+      padding: 8px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-main);
+      transition: all var(--transition-fast);
 
       &:hover {
-        opacity: 1;
-        transform: scale(1.22) translateY(-1px);
-        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+        color: var(--color-primary);
+        border-color: var(--color-primary);
+        background: var(--color-primary-light);
+        transform: translateY(-1px);
       }
 
       &:active {
-        transform: scale(0.92);
+        transform: scale(0.96);
       }
     }
   }

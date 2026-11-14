@@ -56,6 +56,7 @@ const supportUrl = computed(() => {
 
 // Form Fields
 const selectedVehicleId = ref<string>('');
+const customVehicleName = ref('');
 const stationName = ref('');
 const stationId = ref<string | undefined>(undefined);
 const stationAddress = ref<string | undefined>(undefined);
@@ -175,10 +176,31 @@ const availableYears = computed(() => {
   return Array.from(years).sort((a, b) => b - a);
 });
 
+const availableVehicleFilterOptions = computed(() => {
+  const options: { value: string; label: string }[] = [{ value: 'all', label: 'Todos los vehículos' }];
+  const seen = new Set<string>();
+
+  vehicles.value.forEach((v) => {
+    seen.add(v.id);
+    options.push({ value: v.id, label: `${v.alias} (${v.plate})` });
+  });
+
+  logs.value.forEach((l) => {
+    if (l.vehicleAlias && !l.vehicleId && !seen.has(l.vehicleAlias)) {
+      seen.add(l.vehicleAlias);
+      options.push({ value: l.vehicleAlias, label: l.vehicleAlias });
+    }
+  });
+
+  return options;
+});
+
 const filteredLogs = computed(() => {
   return logs.value.filter((log) => {
-    if (filterVehicle.value !== 'all' && log.vehicleId !== filterVehicle.value) {
-      return false;
+    if (filterVehicle.value !== 'all') {
+      const matchId = log.vehicleId === filterVehicle.value;
+      const matchAlias = log.vehicleAlias === filterVehicle.value;
+      if (!matchId && !matchAlias) return false;
     }
     if (filterTrimester.value !== 'all') {
       const d = new Date(log.date);
@@ -263,6 +285,7 @@ const printReport = () => {
 const openNewRefuelForm = () => {
   editingLogId.value = null;
   selectedVehicleId.value = activeVehicle.value?.id || '';
+  customVehicleName.value = '';
   stationName.value = '';
   stationId.value = undefined;
   stationAddress.value = undefined;
@@ -298,7 +321,16 @@ const openNewRefuelForm = () => {
 
 const openEditRefuelForm = (item: RefuelLog) => {
   editingLogId.value = item.id;
-  selectedVehicleId.value = item.vehicleId || '';
+  if (item.vehicleId && vehicles.value.some((v) => v.id === item.vehicleId)) {
+    selectedVehicleId.value = item.vehicleId;
+    customVehicleName.value = '';
+  } else if (item.vehicleAlias) {
+    selectedVehicleId.value = vehicles.value.length > 0 ? '__custom__' : '';
+    customVehicleName.value = item.vehicleAlias;
+  } else {
+    selectedVehicleId.value = '';
+    customVehicleName.value = '';
+  }
   stationName.value = item.stationName;
   stationId.value = item.stationId;
   stationAddress.value = item.stationAddress;
@@ -327,6 +359,8 @@ const handleSave = () => {
     avgP && avgP > p ? Math.round((avgP - p) * l * 100) / 100 : undefined;
 
   const chosenVeh = vehicles.value.find((v) => v.id === selectedVehicleId.value);
+  const resolvedAlias = chosenVeh ? chosenVeh.alias : (customVehicleName.value.trim() || undefined);
+  const resolvedPlate = chosenVeh ? chosenVeh.plate : undefined;
 
   const payload = {
     stationName: stationName.value.trim(),
@@ -341,8 +375,8 @@ const handleSave = () => {
     odometerKm: odometerKm.value !== '' ? Number(odometerKm.value) : null,
     notes: notes.value.trim() || undefined,
     vehicleId: chosenVeh?.id,
-    vehicleAlias: chosenVeh?.alias,
-    vehiclePlate: chosenVeh?.plate,
+    vehicleAlias: resolvedAlias,
+    vehiclePlate: resolvedPlate,
   };
 
   if (editingLogId.value) {
@@ -468,9 +502,12 @@ onMounted(() => {
         <div class="toolbar-select-wrap">
           <Car :size="15" class="select-icon" />
           <select v-model="filterVehicle" class="toolbar-select">
-            <option value="all">Todos los vehículos</option>
-            <option v-for="v in vehicles" :key="v.id" :value="v.id">
-              {{ v.alias }} ({{ v.plate }})
+            <option
+              v-for="opt in availableVehicleFilterOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
             </option>
           </select>
         </div>
@@ -539,17 +576,33 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Vehicle Selector -->
-          <div v-if="vehicles.length > 0" class="form-group">
-            <label class="field-label">Vehículo asignado</label>
-            <div class="input-icon-wrap">
+          <!-- Vehicle / Automobile Selector (Optional) -->
+          <div class="form-group">
+            <label class="field-label">Automóvil / Vehículo (opcional)</label>
+            <div v-if="vehicles.length > 0" class="input-icon-wrap">
               <Car :size="16" class="field-icon" />
               <select v-model="selectedVehicleId" class="form-select">
                 <option value="">(Sin vehículo asignado)</option>
                 <option v-for="v in vehicles" :key="v.id" :value="v.id">
                   {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
                 </option>
+                <option value="__custom__">Otro vehículo (escribir nombre)...</option>
               </select>
+            </div>
+
+            <!-- Custom vehicle name input (if no saved vehicles or custom chosen) -->
+            <div
+              v-if="vehicles.length === 0 || selectedVehicleId === '__custom__'"
+              class="input-icon-wrap"
+              :style="vehicles.length > 0 ? 'margin-top: 6px;' : ''"
+            >
+              <Car :size="16" class="field-icon" />
+              <input
+                v-model="customVehicleName"
+                type="text"
+                placeholder="Ej. Seat León, Mi coche, Moto..."
+                class="form-input"
+              />
             </div>
           </div>
 
@@ -706,7 +759,7 @@ onMounted(() => {
           <div class="badge-row">
             <span v-if="item.vehicleAlias" class="pill-vehicle">
               <Car :size="11" />
-              <span>{{ item.vehicleAlias }} ({{ item.vehiclePlate }})</span>
+              <span>{{ item.vehicleAlias }}{{ item.vehiclePlate ? ` (${item.vehiclePlate})` : '' }}</span>
             </span>
             <span class="pill-fuel">{{ item.fuelType.toUpperCase() }}</span>
             <span class="pill-data">{{ item.pricePerLiter.toFixed(3) }} €/L</span>
@@ -796,7 +849,7 @@ onMounted(() => {
           <tr v-for="l in filteredLogs" :key="l.id">
             <td>{{ new Date(l.date).toLocaleDateString('es-ES') }}</td>
             <td>{{ l.stationName }}</td>
-            <td>{{ l.vehicleAlias ? `${l.vehicleAlias} (${l.vehiclePlate})` : '-' }}</td>
+            <td>{{ l.vehicleAlias ? `${l.vehicleAlias}${l.vehiclePlate ? ` (${l.vehiclePlate})` : ''}` : '-' }}</td>
             <td>{{ l.fuelType }}</td>
             <td>{{ l.liters.toFixed(2) }} L</td>
             <td>{{ l.pricePerLiter.toFixed(3) }} €</td>

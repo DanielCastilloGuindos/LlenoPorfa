@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Heart, Clock, Sparkles } from 'lucide-vue-next';
+import { Heart, Clock, Sparkles, MapPin, Route, Compass } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
 import { useVisitDetector } from '../composables/useVisitDetector';
-import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
-import WazeIcon from './icons/WazeIcon.vue';
-import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 
 const props = defineProps<{
   station: Station;
@@ -106,7 +103,7 @@ const handleFavoriteClick = (e: Event) => {
     <div class="card-footer">
       <span class="municipality">{{ station.municipality }}</span>
 
-      <!-- Direct official GPS logos (no button wrappers) -->
+      <!-- Direct GPS Navigation with Lucide Icons -->
       <div class="gps-direct-logos" @click.stop>
         <a
           :href="googleMapsUrl"
@@ -117,7 +114,7 @@ const handleFavoriteClick = (e: Event) => {
           aria-label="Google Maps"
           @click="registerPendingVisit(station, 'google_maps', fuel)"
         >
-          <GoogleMapsIcon :size="20" />
+          <MapPin :size="15" />
         </a>
         <a
           :href="wazeUrl"
@@ -128,7 +125,7 @@ const handleFavoriteClick = (e: Event) => {
           aria-label="Waze"
           @click="registerPendingVisit(station, 'waze', fuel)"
         >
-          <WazeIcon :size="20" />
+          <Route :size="15" />
         </a>
         <a
           :href="appleMapsUrl"
@@ -139,7 +136,7 @@ const handleFavoriteClick = (e: Event) => {
           aria-label="Apple Maps"
           @click="registerPendingVisit(station, 'apple_maps', fuel)"
         >
-          <AppleMapsIcon :size="20" />
+          <Compass :size="15" />
         </a>
       </div>
     </div>
@@ -314,26 +311,25 @@ const handleFavoriteClick = (e: Event) => {
   .gps-direct-logos {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
 
     .gps-logo-item {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: none;
-      border: none;
-      box-shadow: none;
-      padding: 2px;
-      line-height: 1;
-      opacity: 0.92;
-      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  opacity 0.2s ease,
-                  filter 0.2s ease;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      transition: all var(--transition-fast);
 
       &:hover {
-        opacity: 1;
-        transform: scale(1.22) translateY(-1px);
-        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+        color: var(--color-primary);
+        background: var(--color-primary-light);
+        border-color: var(--color-primary);
+        transform: translateY(-1px);
       }
 
       &:active {

@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-next';
+import { Navigation, Plus, Minus, X, ArrowRight, Sparkles, MapPin, Route, Compass } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useHaptics } from '../composables/useHaptics';
-import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
-import WazeIcon from './icons/WazeIcon.vue';
-import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 
 const props = defineProps<{
   stations: Station[];
@@ -331,7 +328,7 @@ onBeforeUnmount(() => {
               title="Abrir en Google Maps"
               aria-label="Google Maps"
             >
-              <GoogleMapsIcon :size="20" />
+              <MapPin :size="16" />
             </a>
             <a
               :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
@@ -342,7 +339,7 @@ onBeforeUnmount(() => {
               title="Abrir en Waze"
               aria-label="Waze"
             >
-              <WazeIcon :size="20" />
+              <Route :size="16" />
             </a>
             <a
               :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
@@ -353,7 +350,7 @@ onBeforeUnmount(() => {
               title="Abrir en Apple Maps"
               aria-label="Apple Maps"
             >
-              <AppleMapsIcon :size="20" />
+              <Compass :size="16" />
             </a>
           </div>
 
@@ -435,7 +432,7 @@ onBeforeUnmount(() => {
 // Mobile bottom preview sheet
 .mobile-bottom-station-card {
   position: absolute;
-  bottom: 16px;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 14px);
   left: 12px;
   right: 12px;
   z-index: 500;
@@ -454,7 +451,7 @@ onBeforeUnmount(() => {
     max-width: 420px;
     left: 20px;
     right: auto;
-    bottom: 20px;
+    bottom: 24px;
   }
 
   .dismiss-btn {
@@ -552,26 +549,25 @@ onBeforeUnmount(() => {
       .gps-direct-logos {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 6px;
 
         .gps-logo-item {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: none;
-          border: none;
-          box-shadow: none;
-          padding: 2px;
-          line-height: 1;
-          opacity: 0.92;
-          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                      opacity 0.2s ease,
-                      filter 0.2s ease;
+          width: 30px;
+          height: 30px;
+          border-radius: var(--radius-md);
+          background: var(--bg-surface-subtle);
+          border: 1px solid var(--border-color);
+          color: var(--text-muted);
+          transition: all var(--transition-fast);
 
           &:hover {
-            opacity: 1;
-            transform: scale(1.22) translateY(-1px);
-            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+            color: var(--color-primary);
+            background: var(--color-primary-light);
+            border-color: var(--color-primary);
+            transform: translateY(-1px);
           }
 
           &:active {
