@@ -10,43 +10,9 @@ const props = defineProps<{
 const miniMapContainer = ref<HTMLElement | null>(null);
 let miniMapInstance: any = null;
 let L: any = null;
-let currentTileLayer: any = null;
-let themeObserver: MutationObserver | null = null;
 
-const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const OSM_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
-
-const isCurrentThemeDark = (): boolean => {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.getAttribute('data-theme') === 'dark';
-};
-
-const updateTileTheme = () => {
-  if (!miniMapInstance || !L) return;
-  const isDark = isCurrentThemeDark();
-  const targetUrl = isDark ? DARK_TILES : LIGHT_TILES;
-
-  if (currentTileLayer) {
-    currentTileLayer.remove();
-  }
-
-  currentTileLayer = L.tileLayer(targetUrl, {
-    attribution: ATTRIBUTION,
-    subdomains: 'abcd',
-    maxZoom: 18,
-  });
-
-  currentTileLayer.on('tileerror', () => {
-    if (miniMapInstance && currentTileLayer) {
-      currentTileLayer.setUrl(OSM_FALLBACK);
-    }
-  });
-
-  currentTileLayer.addTo(miniMapInstance);
-};
+// 100% Free OpenStreetMap tile URL (NO API KEY REQUIRED)
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 const initMiniMap = async () => {
   if (typeof window === 'undefined' || !miniMapContainer.value) return;
@@ -65,12 +31,12 @@ const initMiniMap = async () => {
     attributionControl: false, // compact display inside modal
   });
 
-  updateTileTheme();
-  renderMarkers();
+  // Standard OpenStreetMap
+  L.tileLayer(OSM_TILES, {
+    maxZoom: 18,
+  }).addTo(miniMapInstance);
 
-  // Watch html theme changes
-  themeObserver = new MutationObserver(() => updateTileTheme());
-  themeObserver.observe(document.documentElement, { attributes: true });
+  renderMarkers();
 
   nextTick(() => {
     miniMapInstance?.invalidateSize();
@@ -134,7 +100,9 @@ watch(
   () => {
     if (miniMapInstance) {
       miniMapInstance.eachLayer((layer: any) => {
-        if (layer !== currentTileLayer) layer.remove();
+        // Keep base tile layer
+        if (layer.options && layer.options.maxZoom) return;
+        layer.remove();
       });
       renderMarkers();
       nextTick(() => miniMapInstance?.invalidateSize());
@@ -147,7 +115,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  themeObserver?.disconnect();
   if (miniMapInstance) {
     miniMapInstance.remove();
     miniMapInstance = null;

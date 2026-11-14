@@ -1,29 +1,38 @@
 <template>
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
+    viewBox="0 0 32 32"
     width="18"
     height="18"
-    class="gps-logo-svg"
+    class="gps-logo-svg modern-waze"
+    aria-label="Waze"
   >
-    <!-- Cyan background pill -->
-    <rect width="24" height="24" rx="6" fill="#33CCFF" />
-    <!-- Wheels -->
-    <circle cx="8" cy="18.5" r="2.2" fill="#23272A" />
-    <circle cx="16" cy="18.5" r="2.2" fill="#23272A" />
-    <!-- Body -->
+    <defs>
+      <linearGradient id="wazeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38d4fc" />
+        <stop offset="100%" stop-color="#05b2e6" />
+      </linearGradient>
+    </defs>
+    <!-- Modern rounded Waze body -->
     <path
-      d="M17.5 7.5C16.8 5.4 14.6 4 12 4 8.7 4 6 6.7 6 10c0 1.2.4 2.3 1 3.2L6.2 15c-.3.4 0 1 .5 1h10.8c3 0 5.5-2.5 5.5-5.5 0-1.4-.5-2.7-1.4-3.7-.7.4-1.6.7-2.6.7h-1.5z"
-      fill="#FFFFFF"
+      d="M24 7 C21.5 3.5 17 2 12 2.5 C6.5 3 2 7.5 2 13 C2 17.5 4.8 21.2 8.8 22.8 L8.2 25.5 C8 26.5 8.8 27.5 9.8 27.5 L19.5 27.5 C24.5 27.5 28.5 23.5 28.5 18.5 C28.5 14.8 26.5 11.5 23.5 9.8 C24.2 8.8 24.5 7.8 24 7 Z"
+      fill="url(#wazeGrad)"
     />
-    <!-- Eyes -->
-    <circle cx="10" cy="10" r="1.3" fill="#23272A" />
-    <circle cx="14.5" cy="10" r="1.3" fill="#23272A" />
-    <!-- Smile -->
+    <!-- Back & Front Wheels with rims -->
+    <circle cx="10" cy="27.5" r="2.8" fill="#1e293b" />
+    <circle cx="10" cy="27.5" r="1.1" fill="#ffffff" />
+    <circle cx="21" cy="27.5" r="2.8" fill="#1e293b" />
+    <circle cx="21" cy="27.5" r="1.1" fill="#ffffff" />
+
+    <!-- Cute Eyes -->
+    <circle cx="12" cy="13" r="1.8" fill="#1e293b" />
+    <circle cx="18" cy="13" r="1.8" fill="#1e293b" />
+
+    <!-- Friendly Smile -->
     <path
-      d="M11 13c.4.6 1.1 1 1.8 1s1.4-.4 1.8-1"
-      stroke="#23272A"
-      stroke-width="1.2"
+      d="M13.2 17.5 C14.2 19 15.8 19 16.8 17.5"
+      stroke="#1e293b"
+      stroke-width="1.6"
       stroke-linecap="round"
       fill="none"
     />
@@ -35,5 +44,6 @@
   display: inline-block;
   vertical-align: middle;
   flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 </style>

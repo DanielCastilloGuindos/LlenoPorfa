@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type {
   FuelId,
   SortMode,
@@ -8,6 +8,8 @@ import type {
 } from '../types';
 import { useGeolocation } from './useGeolocation';
 import { useSettings } from './useSettings';
+
+const LOCAL_STORAGE_STATIONS_BACKUP = 'llenoporfa_last_stations_cache_v1';
 
 const fuel = ref<FuelId>('g95_e5');
 const radius = ref<number>(10);
@@ -19,6 +21,7 @@ const localFilterText = ref<string>('');
 const stations = ref<Station[]>([]);
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
+const isOfflineMode = ref<boolean>(false);
 
 const selectedStation = ref<Station | null>(null);
 const hoveredStationId = ref<string | null>(null);
@@ -76,8 +79,35 @@ export function useStations() {
         filtersCatalog.value = data;
       }
     } catch (e) {
-      // Use fallback defaults already defined in filtersCatalog
+      // defaults preserved
     }
+  };
+
+  const saveStationsToOfflineStorage = (data: StationsApiResponse) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(LOCAL_STORAGE_STATIONS_BACKUP, JSON.stringify(data));
+    } catch (e) {}
+  };
+
+  const loadStationsFromOfflineStorage = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_STATIONS_BACKUP);
+      if (raw) {
+        const data: StationsApiResponse = JSON.parse(raw);
+        stations.value = data.stations || [];
+        stats.value = {
+          minPrice: data.min_price,
+          maxPrice: data.max_price,
+          avgPrice: data.average_price,
+          count: data.count,
+        };
+        isOfflineMode.value = true;
+        return true;
+      }
+    } catch (e) {}
+    return false;
   };
 
   const fetchStations = async () => {
@@ -113,8 +143,9 @@ export function useStations() {
         avgPrice: data.average_price,
         count: data.count,
       };
+      isOfflineMode.value = false;
+      saveStationsToOfflineStorage(data);
 
-      // Keep selectedStation synced if still in results
       if (selectedStation.value) {
         const found = stations.value.find((s) => s.id === selectedStation.value?.id);
         if (found) {
@@ -122,14 +153,17 @@ export function useStations() {
         }
       }
     } catch (err: any) {
-      console.error('Failed to fetch stations:', err);
-      error.value = 'No se pudieron cargar las gasolineras. Comprueba tu conexión o intenta con otro radio.';
+      console.warn('Network fetch failed, attempting offline fallback:', err);
+      const recovered = loadStationsFromOfflineStorage();
+      if (!recovered) {
+        error.value =
+          'No se pudieron cargar las gasolineras y no hay datos guardados sin conexión.';
+      }
     } finally {
       loading.value = false;
     }
   };
 
-  // Local search filter for instant typing inside current results
   const filteredStations = computed(() => {
     if (!localFilterText.value.trim()) {
       return stations.value;
@@ -143,7 +177,6 @@ export function useStations() {
     );
   });
 
-  // Calculate real savings for a full tank (e.g. 50L) comparing station price vs average area price
   const calculateTankSavings = (stationPrice: number | null): number => {
     if (!stationPrice || !stats.value.avgPrice) return 0;
     const tankLiters = settings.value.tankCapacityLiters || 50;
@@ -171,6 +204,7 @@ export function useStations() {
     filteredStations,
     loading,
     error,
+    isOfflineMode,
     stats,
     filtersCatalog,
     selectedStation,

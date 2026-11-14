@@ -3,8 +3,8 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
 import { useGeolocation } from '../composables/useGeolocation';
-import { useSettings } from '../composables/useSettings';
 import { useStations } from '../composables/useStations';
+import { useHaptics } from '../composables/useHaptics';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
 import AppleMapsIcon from './icons/AppleMapsIcon.vue';
@@ -25,54 +25,20 @@ const emit = defineEmits<{
 const mapContainer = ref<HTMLElement | null>(null);
 let mapInstance: any = null;
 let L: any = null;
-let currentTileLayer: any = null;
+let tileLayer: any = null;
 let markersLayer: any = null;
 let userMarker: any = null;
 let resizeObserver: ResizeObserver | null = null;
-let themeObserver: MutationObserver | null = null;
 const markerMap = new Map<string, any>();
 
 const { locationState, requestCurrentLocation } = useGeolocation();
-const { settings } = useSettings();
 const { calculateTankSavings } = useStations();
+const { light, medium } = useHaptics();
 
-// Tile URLs without API keys
-const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-const OSM_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// 100% Free OpenStreetMap tile URL (NO API KEY REQUIRED EVER)
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
-
-const isCurrentThemeDark = (): boolean => {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.getAttribute('data-theme') === 'dark';
-};
-
-const updateTileTheme = () => {
-  if (!mapInstance || !L) return;
-  const isDark = isCurrentThemeDark();
-  const targetUrl = isDark ? DARK_TILES : LIGHT_TILES;
-
-  if (currentTileLayer) {
-    currentTileLayer.remove();
-  }
-
-  currentTileLayer = L.tileLayer(targetUrl, {
-    attribution: ATTRIBUTION,
-    subdomains: 'abcd',
-    maxZoom: 19,
-  });
-
-  currentTileLayer.on('tileerror', (error: any) => {
-    // Graceful fallback to standard OSM if CARTO is unreachable
-    console.warn('CARTO tile error, falling back to OpenStreetMap', error);
-    if (mapInstance && currentTileLayer) {
-      currentTileLayer.setUrl(OSM_FALLBACK);
-    }
-  });
-
-  currentTileLayer.addTo(mapInstance);
-};
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 
 const initMap = async () => {
   if (typeof window === 'undefined' || !mapContainer.value) return;
@@ -88,29 +54,24 @@ const initMap = async () => {
     zoomControl: false,
   });
 
-  updateTileTheme();
+  // Standard OpenStreetMap - completely free and token-free
+  tileLayer = L.tileLayer(OSM_TILES, {
+    attribution: ATTRIBUTION,
+    maxZoom: 19,
+  }).addTo(mapInstance);
+
   markersLayer = L.layerGroup().addTo(mapInstance);
 
   renderUserLocation();
   renderStationMarkers();
 
-  // Watch container resize
+  // ResizeObserver for reliable rendering on mobile
   if (window.ResizeObserver && mapContainer.value) {
     resizeObserver = new ResizeObserver(() => {
       invalidateSize();
     });
     resizeObserver.observe(mapContainer.value);
   }
-
-  // Watch html data-theme attribute
-  themeObserver = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.attributeName === 'data-theme') {
-        updateTileTheme();
-      }
-    }
-  });
-  themeObserver.observe(document.documentElement, { attributes: true });
 
   invalidateSize();
 };
@@ -179,6 +140,7 @@ const renderStationMarkers = () => {
     });
 
     const marker = L.marker(latLng, { icon: customIcon }).on('click', () => {
+      light();
       emit('select-station', station);
     });
 
@@ -227,10 +189,18 @@ const updateSelectedMarker = (selectedId: string | null) => {
   });
 };
 
-const zoomIn = () => mapInstance?.zoomIn();
-const zoomOut = () => mapInstance?.zoomOut();
+const zoomIn = () => {
+  light();
+  mapInstance?.zoomIn();
+};
+
+const zoomOut = () => {
+  light();
+  mapInstance?.zoomOut();
+};
 
 const centerOnUser = async () => {
+  medium();
   if (!locationState.value.coords) {
     try {
       await requestCurrentLocation();
@@ -265,7 +235,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('orientationchange', invalidateSize);
   window.removeEventListener('resize', invalidateSize);
   resizeObserver?.disconnect();
-  themeObserver?.disconnect();
   if (mapInstance) {
     mapInstance.remove();
     mapInstance = null;
@@ -307,7 +276,7 @@ onBeforeUnmount(() => {
         @click.stop="emit('select-station', null as any)"
         aria-label="Cerrar vista previa"
       >
-        <X :size="16" />
+        <X :size="18" />
       </button>
 
       <div class="station-preview-header">
@@ -414,7 +383,7 @@ onBeforeUnmount(() => {
   z-index: 400;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 
   @include desktop {
     top: 20px;
@@ -422,8 +391,10 @@ onBeforeUnmount(() => {
   }
 
   .map-ctrl-btn {
-    width: 38px;
-    height: 38px;
+    width: 44px; // 44x44px minimum touch target
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: var(--radius-md);
     background: var(--bg-surface);
     color: var(--text-main);
@@ -439,7 +410,6 @@ onBeforeUnmount(() => {
 
     &.gps-btn {
       color: var(--color-primary);
-      margin-top: 4px;
     }
   }
 }
@@ -474,7 +444,9 @@ onBeforeUnmount(() => {
     top: 10px;
     right: 10px;
     color: var(--text-muted);
-    padding: 4px;
+    min-width: 38px;
+    min-height: 38px;
+    @include flex-center;
     border-radius: var(--radius-full);
     &:hover {
       color: var(--text-main);
@@ -485,7 +457,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding-right: 20px;
+    padding-right: 32px;
 
     .brand-block {
       h4 {
@@ -532,7 +504,7 @@ onBeforeUnmount(() => {
       .badge {
         font-size: 0.725rem;
         font-weight: 600;
-        padding: 3px 7px;
+        padding: 4px 8px;
         background: var(--bg-surface-subtle);
         border-radius: var(--radius-sm);
         color: var(--text-muted);
@@ -559,8 +531,10 @@ onBeforeUnmount(() => {
       gap: 6px;
 
       .gps-link {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
         border-radius: var(--radius-md);
         background: var(--bg-surface-subtle);
         border: 1px solid var(--border-color);
@@ -580,7 +554,8 @@ onBeforeUnmount(() => {
         font-weight: 700;
         color: var(--color-primary-dark);
         background: var(--color-primary-light);
-        padding: 6px 10px;
+        padding: 6px 12px;
+        min-height: 36px;
         border-radius: var(--radius-md);
 
         [data-theme="dark"] & {

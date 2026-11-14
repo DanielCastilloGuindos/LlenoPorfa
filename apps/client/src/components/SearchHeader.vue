@@ -12,7 +12,7 @@ import {
 } from 'lucide-vue-next';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
-import { useSavedSearches } from '../composables/useSavedSearches';
+import { useHaptics } from '../composables/useHaptics';
 
 const emit = defineEmits<{
   (e: 'open-save-modal'): void;
@@ -20,23 +20,32 @@ const emit = defineEmits<{
 
 const { locationState, requestCurrentLocation, setManualLocation, popularLocations } =
   useGeolocation();
-const { localFilterText, fetchStations, fuel, radius, brand, open24h, sort } = useStations();
+const { localFilterText, fetchStations } = useStations();
+const { light, medium, success } = useHaptics();
 
 const showCityModal = ref(false);
 
 const handleGpsClick = async () => {
+  medium();
   try {
     await requestCurrentLocation();
     await fetchStations();
+    success();
   } catch (e) {
     showCityModal.value = true;
   }
 };
 
 const handleSelectCity = async (name: string, coords: { lat: number; lng: number }) => {
+  light();
   setManualLocation(name, coords);
   showCityModal.value = false;
   await fetchStations();
+};
+
+const openSaveModal = () => {
+  light();
+  emit('open-save-modal');
 };
 </script>
 
@@ -44,8 +53,8 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
   <header class="search-header">
     <div class="header-top-bar">
       <!-- Location Selector Pill -->
-      <button class="location-pill" @click="showCityModal = true">
-        <MapPin :size="15" class="location-icon" />
+      <button class="location-pill" @click="showCityModal = true; light()">
+        <MapPin :size="16" class="location-icon" />
         <span class="location-name">{{ locationState.name }}</span>
         <ChevronDown :size="14" class="chevron-icon" />
       </button>
@@ -67,7 +76,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
         <!-- Save current search preset -->
         <button
           class="btn-icon"
-          @click="emit('open-save-modal')"
+          @click="openSaveModal"
           title="Guardar búsqueda"
           aria-label="Guardar búsqueda actual"
         >
@@ -78,7 +87,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 
     <!-- Search input for filtering by brand or street -->
     <div class="search-input-wrapper">
-      <Search :size="16" class="search-icon" />
+      <Search :size="18" class="search-icon" />
       <input
         v-model="localFilterText"
         type="search"
@@ -88,10 +97,10 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
       <button
         v-if="localFilterText"
         class="clear-btn"
-        @click="localFilterText = ''"
+        @click="localFilterText = ''; light()"
         aria-label="Limpiar búsqueda"
       >
-        <X :size="14" />
+        <X :size="16" />
       </button>
     </div>
 
@@ -106,7 +115,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
         </div>
 
         <button class="gps-option-btn" @click="handleGpsClick(); showCityModal = false">
-          <Navigation :size="18" class="text-primary" />
+          <Navigation :size="20" class="text-primary" />
           <div class="gps-text">
             <strong>Usar mi ubicación GPS actual</strong>
             <span>Requiere permiso de ubicación</span>
@@ -136,9 +145,8 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 @use "../styles/mixins" as *;
 
 .search-header {
-  padding: 12px 16px;
+  padding: 10px 16px 8px;
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -153,13 +161,14 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
   align-items: center;
   gap: 6px;
   background: var(--bg-surface-subtle);
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: var(--radius-full);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  max-width: 60%;
+  max-width: 65%;
+  min-height: 44px; // 44x44px minimum touch area
   transition: all var(--transition-fast);
 
   &:hover {
@@ -188,8 +197,10 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
@@ -236,12 +247,13 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 
   .search-input {
     width: 100%;
-    padding: 8px 36px 8px 36px;
+    padding: 10px 40px 10px 38px;
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     font-size: 0.875rem;
     color: var(--text-main);
+    min-height: 44px;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 
     &:focus {
@@ -256,8 +268,10 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 
   .clear-btn {
     position: absolute;
-    right: 10px;
+    right: 6px;
     color: var(--text-muted);
+    min-width: 36px;
+    min-height: 36px;
     @include flex-center;
 
     &:hover {
@@ -272,7 +286,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  z-index: 200;
   @include flex-center;
   padding: 16px;
 }
@@ -295,11 +309,13 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 
   h3 {
     font-size: 1.1rem;
-    font-weight: 700;
+    font-weight: 800;
   }
 
   .close-btn {
     color: var(--text-muted);
+    min-width: 38px;
+    min-height: 38px;
     &:hover {
       color: var(--text-main);
     }
@@ -315,6 +331,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   text-align: left;
+  min-height: 56px;
   transition: all var(--transition-fast);
 
   &:hover {
@@ -344,7 +361,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
 
 .section-title {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -356,12 +373,13 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
   gap: 8px;
 
   .city-chip {
-    padding: 10px 12px;
+    padding: 10px 14px;
     border-radius: var(--radius-md);
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
+    min-height: 44px;
     @include flex-between;
     transition: all var(--transition-fast);
 
@@ -373,7 +391,7 @@ const handleSelectCity = async (name: string, coords: { lat: number; lng: number
       border-color: var(--color-primary);
       background: var(--color-primary-light);
       color: var(--color-primary-dark);
-      font-weight: 700;
+      font-weight: 800;
     }
   }
 }

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Search, ReceiptText, MapPin, Heart, Settings, Fuel } from 'lucide-vue-next';
 import type { TabId } from '../types';
+import { useHaptics } from '../composables/useHaptics';
 import gsap from 'gsap';
 
 const props = defineProps<{
@@ -11,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:activeTab', tab: TabId): void;
 }>();
+
+const { light } = useHaptics();
 
 const tabs = [
   { id: 'search' as TabId, label: 'Buscar', icon: Search },
@@ -23,15 +26,19 @@ const tabs = [
 const navContainer = ref<HTMLElement | null>(null);
 
 const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
+  light(); // Haptic feedback on bottom tab change
   emit('update:activeTab', tabId);
 
-  // Microinteraction with GSAP
+  // Microinteraction with GPU-accelerated GSAP
   if (targetEl) {
-    gsap.fromTo(
-      targetEl.querySelector('.nav-icon'),
-      { scale: 0.8 },
-      { scale: 1.15, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' }
-    );
+    const icon = targetEl.querySelector('.nav-icon');
+    if (icon) {
+      gsap.fromTo(
+        icon,
+        { scale: 0.8 },
+        { scale: 1.15, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out', force3D: true }
+      );
+    }
   }
 };
 </script>
@@ -64,7 +71,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     </nav>
 
     <div class="sidebar-footer">
-      <span class="badge-source">API Oficial MITECO</span>
+      <span class="badge-source">API Oficial MITECO • PWA</span>
     </div>
   </aside>
 
@@ -156,6 +163,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     color: var(--text-muted);
     font-weight: 600;
     font-size: 0.925rem;
+    min-height: 48px;
     transition: all var(--transition-fast);
 
     &:hover {
@@ -216,7 +224,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
   background: var(--bg-surface);
   border-top: 1px solid var(--border-color);
   box-shadow: var(--shadow-nav);
-  z-index: 50;
+  z-index: 80;
   justify-content: space-around;
   align-items: center;
   backdrop-filter: blur(16px);
@@ -230,6 +238,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     justify-content: center;
     padding: 6px 0;
     color: var(--text-muted);
+    min-height: 52px;
     transition: color var(--transition-fast);
 
     .icon-wrapper {

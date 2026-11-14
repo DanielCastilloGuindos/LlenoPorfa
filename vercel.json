@@ -17,6 +17,22 @@
   ],
   "routes": [
     {
+      "src": "/sw.js",
+      "dest": "apps/client/dist/sw.js",
+      "headers": {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Content-Type": "application/javascript; charset=utf-8"
+      }
+    },
+    {
+      "src": "/manifest.webmanifest",
+      "dest": "apps/client/dist/manifest.webmanifest",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Type": "application/manifest+json; charset=utf-8"
+      }
+    },
+    {
       "src": "/api/(.*)",
       "dest": "apps/api/api/$1.rs",
       "headers": {

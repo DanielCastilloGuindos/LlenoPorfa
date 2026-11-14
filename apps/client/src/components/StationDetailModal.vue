@@ -14,6 +14,7 @@ import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
 import { useSettings } from '../composables/useSettings';
 import { useGeolocation } from '../composables/useGeolocation';
+import { useHaptics } from '../composables/useHaptics';
 import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
 import WazeIcon from './icons/WazeIcon.vue';
 import AppleMapsIcon from './icons/AppleMapsIcon.vue';
@@ -34,6 +35,7 @@ const { isFavorite, toggleFavorite } = useFavorites();
 const { calculateTankSavings, fuel } = useStations();
 const { settings } = useSettings();
 const { locationState } = useGeolocation();
+const { light, success, medium } = useHaptics();
 
 const isFav = computed(() => (props.station ? isFavorite(props.station.id) : false));
 const savings = computed(() =>
@@ -58,6 +60,7 @@ const wazeUrl = computed(() => {
 
 const handleShare = async () => {
   if (!props.station) return;
+  light();
   const shareData = {
     title: `${props.station.brand} - llenoPorfa`,
     text: `Precios en ${props.station.brand} (${props.station.municipality}): ${props.station.address}`,
@@ -72,14 +75,73 @@ const handleShare = async () => {
       );
       alert('¡Enlace copiado al portapapeles!');
     }
-  } catch (err) {
-    // cancelled
+  } catch (err) {}
+};
+
+const handleFavoriteClick = () => {
+  if (props.station) {
+    success();
+    toggleFavorite(props.station);
   }
 };
 
 const handleRecordRefuel = () => {
   if (props.station) {
+    medium();
     emit('record-refuel', props.station);
+  }
+};
+
+// Touch drag to dismiss on mobile
+let startY = 0;
+let currentY = 0;
+let isDragging = false;
+
+const onTouchStart = (e: TouchEvent) => {
+  startY = e.touches[0].clientY;
+  isDragging = true;
+};
+
+const onTouchMove = (e: TouchEvent) => {
+  if (!isDragging || !modalSheet.value) return;
+  currentY = e.touches[0].clientY;
+  const deltaY = currentY - startY;
+  if (deltaY > 0) {
+    gsap.set(modalSheet.value, { y: deltaY, force3D: true });
+  }
+};
+
+const onTouchEnd = () => {
+  if (!isDragging || !modalSheet.value) return;
+  isDragging = false;
+  const deltaY = currentY - startY;
+  if (deltaY > 90) {
+    // Dismiss
+    closeSheet();
+  } else {
+    // Snap back
+    gsap.to(modalSheet.value, { y: 0, duration: 0.22, ease: 'power2.out', force3D: true });
+  }
+};
+
+const closeSheet = () => {
+  light();
+  if (modalSheet.value) {
+    gsap.to(modalSheet.value, {
+      y: 350,
+      opacity: 0,
+      duration: 0.22,
+      ease: 'power2.in',
+      force3D: true,
+      onComplete: () => {
+        emit('close');
+        if (modalSheet.value) {
+          gsap.set(modalSheet.value, { y: 0, opacity: 1 });
+        }
+      },
+    });
+  } else {
+    emit('close');
   }
 };
 
@@ -91,8 +153,8 @@ watch(
         if (modalSheet.value) {
           gsap.fromTo(
             modalSheet.value,
-            { y: 60, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.28, ease: 'power3.out' }
+            { y: 80, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.28, ease: 'power3.out', force3D: true }
           );
         }
       });
@@ -102,8 +164,14 @@ watch(
 </script>
 
 <template>
-  <div v-if="station" class="modal-backdrop" @click.self="emit('close')">
-    <div ref="modalSheet" class="detail-sheet">
+  <div v-if="station" class="modal-backdrop" @click.self="closeSheet">
+    <div
+      ref="modalSheet"
+      class="detail-sheet"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
+    >
       <!-- Drag handle for mobile -->
       <div class="drag-handle-bar">
         <div class="handle"></div>
@@ -115,7 +183,7 @@ watch(
             <h2 class="station-brand">{{ station.brand }}</h2>
             <span v-if="station.is_open_24h" class="tag-24h">24 Horas</span>
           </div>
-          <p class="station-address">
+          <p class="station-address selectable-text">
             <MapPin :size="13" class="inline-icon" />
             <span>{{ station.address }}, {{ station.municipality }} ({{ station.province }})</span>
           </p>
@@ -125,7 +193,7 @@ watch(
           <button
             class="action-btn fav-btn"
             :class="{ active: isFav }"
-            @click="toggleFavorite(station)"
+            @click="handleFavoriteClick"
             aria-label="Guardar en favoritos"
           >
             <Heart :size="20" :fill="isFav ? 'currentColor' : 'none'" />
@@ -133,7 +201,7 @@ watch(
           <button class="action-btn" @click="handleShare" aria-label="Compartir">
             <Share2 :size="20" />
           </button>
-          <button class="action-btn close-btn" @click="emit('close')" aria-label="Cerrar">
+          <button class="action-btn close-btn" @click="closeSheet" aria-label="Cerrar">
             <X :size="20" />
           </button>
         </div>
@@ -214,7 +282,7 @@ watch(
         </div>
       </div>
 
-      <!-- Navigation GPS Action Buttons with Official Logos -->
+      <!-- Navigation GPS Action Buttons with Modern Official Logos -->
       <div class="gps-navigation-section">
         <span class="section-heading">Abrir en navegador GPS</span>
         <div class="directions-actions">
@@ -285,10 +353,11 @@ watch(
   max-height: 88vh;
   max-height: 88dvh;
   overflow-y: auto;
-  padding: 16px 20px 28px;
+  padding: 14px 20px 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  touch-action: pan-y;
 
   @include desktop {
     border-radius: var(--radius-lg);
@@ -299,16 +368,16 @@ watch(
 .drag-handle-bar {
   display: flex;
   justify-content: center;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 
   @include desktop {
     display: none;
   }
 
   .handle {
-    width: 36px;
-    height: 4px;
-    border-radius: 4px;
+    width: 40px;
+    height: 5px;
+    border-radius: 5px;
     background: var(--border-color);
   }
 }
@@ -358,8 +427,10 @@ watch(
     gap: 6px;
 
     .action-btn {
-      width: 36px;
-      height: 36px;
+      width: 44px; // 44x44px minimum touch area
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
       border-radius: var(--radius-full);
       background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
@@ -387,12 +458,13 @@ watch(
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 11px 16px;
+  padding: 12px 16px;
   background: var(--color-primary);
   color: #ffffff;
   border-radius: var(--radius-md);
   font-weight: 700;
   font-size: 0.9rem;
+  min-height: 46px;
   box-shadow: 0 4px 12px var(--color-primary-glow);
   transition: all var(--transition-fast);
 
@@ -496,7 +568,7 @@ watch(
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     background: var(--bg-surface-subtle);
     border-radius: var(--radius-md);
     font-size: 0.8rem;
@@ -545,13 +617,14 @@ watch(
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 10px 8px;
+      padding: 11px 8px;
       border-radius: var(--radius-md);
       background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
       color: var(--text-main);
       font-weight: 700;
       font-size: 0.8rem;
+      min-height: 44px;
       transition: all var(--transition-fast);
 
       &:hover {

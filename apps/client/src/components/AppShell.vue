@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue';
-import { AlertTriangle, MapPin, X, Loader2 } from 'lucide-vue-next';
+import { AlertTriangle, MapPin, X } from 'lucide-vue-next';
 import type { TabId, Station } from '../types';
 import NavigationBar from './NavigationBar.vue';
 import SearchHeader from './SearchHeader.vue';
@@ -12,6 +12,7 @@ import SaveSearchModal from './SaveSearchModal.vue';
 import RefuelHistoryView from './RefuelHistoryView.vue';
 import FavoritesView from './FavoritesView.vue';
 import SettingsView from './SettingsView.vue';
+import InstallPromptBanner from './InstallPromptBanner.vue';
 
 import { useStations } from '../composables/useStations';
 import { useGeolocation } from '../composables/useGeolocation';
@@ -42,6 +43,16 @@ const { locationState, requestCurrentLocation, dismissError, popularLocations, s
 const { settings } = useSettings();
 const { setPrefillFromStation } = useRefuelLogs();
 
+// Check URL query parameters for PWA shortcuts (e.g. ?tab=map or ?tab=refuel&new=1)
+const handleUrlShortcuts = () => {
+  if (typeof window === 'undefined') return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetTab = urlParams.get('tab') as TabId | null;
+  if (targetTab && ['search', 'refuel', 'map', 'favorites', 'settings'].includes(targetTab)) {
+    activeTab.value = targetTab;
+  }
+};
+
 // Tab Transition and Map Invalidation
 watch(activeTab, (newTab) => {
   nextTick(() => {
@@ -49,7 +60,7 @@ watch(activeTab, (newTab) => {
       gsap.fromTo(
         tabContentEl.value,
         { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' }
+        { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out', force3D: true }
       );
     }
     if (newTab === 'map' || newTab === 'search') {
@@ -80,15 +91,15 @@ const handleSelectManualCity = (name: string, coords: { lat: number; lng: number
 };
 
 onMounted(async () => {
+  handleUrlShortcuts();
   await fetchFilters();
 
-  // Requirement 4: Automatic geolocation prompt on startup
+  // Automatic geolocation prompt on startup
   try {
     await requestCurrentLocation();
   } catch (err) {
-    // Graceful fallback to default center is active in locationState
+    // Madrid fallback is active
   } finally {
-    // Automatically query stations once coordinates are settled
     await fetchStations();
   }
 });
@@ -101,6 +112,9 @@ onMounted(async () => {
 
     <!-- Main Viewport -->
     <main class="main-viewport">
+      <!-- PWA Install Prompt Banner -->
+      <InstallPromptBanner />
+
       <!-- Discreet Geolocation Warning Banner if Permission was Denied -->
       <div
         v-if="locationState.permissionDenied && locationState.error"
@@ -124,13 +138,18 @@ onMounted(async () => {
       <!-- Search View / Map View Desktop Split or Mobile Views -->
       <template v-if="activeTab === 'search' || activeTab === 'map'">
         <div class="split-layout">
-          <!-- Left Panel: Search Header + Filters + List (Hidden on Mobile Map tab) -->
+          <!-- Left Panel: Search Header + Filters (ALWAYS FIXED/STICKY) + Scrollable List -->
           <div
             class="split-sidebar"
             :class="{ 'mobile-hidden': activeTab === 'map' }"
           >
-            <SearchHeader @open-save-modal="showSaveModal = true" />
-            <FilterBar />
+            <!-- STICKY HEADER BLOCK: Ubicación, Buscador, Filtros y Mínimo/Medio -->
+            <div class="sticky-search-controls">
+              <SearchHeader @open-save-modal="showSaveModal = true" />
+              <FilterBar />
+            </div>
+
+            <!-- SCROLLABLE LIST OF STATIONS -->
             <div class="list-scroll-area">
               <StationList
                 :stations="filteredStations"
@@ -166,7 +185,7 @@ onMounted(async () => {
         </div>
       </template>
 
-      <!-- Refuel History Tab (Replaces 'saved') -->
+      <!-- Refuel History Tab -->
       <div
         v-else-if="activeTab === 'refuel'"
         ref="tabContentEl"
@@ -279,12 +298,15 @@ onMounted(async () => {
       font-size: 0.725rem;
       font-weight: 700;
       white-space: nowrap;
+      min-height: 32px;
     }
 
     .banner-close {
       color: inherit;
       padding: 2px;
       opacity: 0.8;
+      min-width: 32px;
+      min-height: 32px;
       &:hover {
         opacity: 1;
       }
@@ -309,6 +331,8 @@ onMounted(async () => {
     .split-sidebar {
       width: 100%;
       height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     .split-map-container {
@@ -322,7 +346,7 @@ onMounted(async () => {
     flex-direction: row;
 
     .split-sidebar {
-      width: 440px;
+      width: 450px;
       min-width: 420px;
       max-width: 480px;
       height: 100%;
@@ -339,6 +363,15 @@ onMounted(async () => {
       position: relative;
     }
   }
+}
+
+// Fixed/Sticky Header Block
+.sticky-search-controls {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg-surface);
+  flex-shrink: 0;
 }
 
 .list-scroll-area {
@@ -416,6 +449,7 @@ onMounted(async () => {
       font-size: 0.875rem;
       font-weight: 600;
       text-align: left;
+      min-height: 44px;
       transition: all var(--transition-fast);
 
       &:hover {

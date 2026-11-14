@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue';
-import { Fuel, AlertCircle, RefreshCw } from 'lucide-vue-next';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { Fuel, AlertCircle, RefreshCw, WifiOff } from 'lucide-vue-next';
 import type { Station } from '../types';
 import StationCard from './StationCard.vue';
 import { useStations } from '../composables/useStations';
@@ -17,8 +17,48 @@ const emit = defineEmits<{
   (e: 'select', station: Station): void;
 }>();
 
-const { stats, fetchStations } = useStations();
+const { fetchStations, isOfflineMode } = useStations();
+
+// Progressive pagination: render initial 20 stations, load rest progressively
+const PAGE_SIZE = 20;
+const visibleCount = ref(PAGE_SIZE);
+const sentinelRef = ref<HTMLElement | null>(null);
 const listContainer = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+const visibleStations = computed(() => {
+  return props.stations.slice(0, visibleCount.value);
+});
+
+const hasMore = computed(() => {
+  return visibleCount.value < props.stations.length;
+});
+
+const loadMore = () => {
+  if (hasMore.value) {
+    visibleCount.value = Math.min(visibleCount.value + PAGE_SIZE, props.stations.length);
+  }
+};
+
+const setupObserver = () => {
+  if (typeof window === 'undefined' || !window.IntersectionObserver) return;
+  if (observer) observer.disconnect();
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore.value) {
+        loadMore();
+      }
+    },
+    { rootMargin: '200px' }
+  );
+
+  nextTick(() => {
+    if (sentinelRef.value) {
+      observer?.observe(sentinelRef.value);
+    }
+  });
+};
 
 const animateCards = () => {
   nextTick(() => {
@@ -27,13 +67,14 @@ const animateCards = () => {
     if (cards.length > 0) {
       gsap.fromTo(
         cards,
-        { opacity: 0, y: 15 },
+        { opacity: 0, y: 12 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.35,
-          stagger: 0.04,
+          duration: 0.28,
+          stagger: 0.03,
           ease: 'power2.out',
+          force3D: true, // 60fps GPU acceleration
         }
       );
     }
@@ -43,34 +84,29 @@ const animateCards = () => {
 watch(
   () => props.stations,
   () => {
+    visibleCount.value = PAGE_SIZE;
     animateCards();
+    setupObserver();
   },
   { deep: false }
 );
 
 onMounted(() => {
   animateCards();
+  setupObserver();
+});
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
 });
 </script>
 
 <template>
   <div class="station-list-wrapper">
-    <!-- Area Statistics Summary Pill -->
-    <div v-if="!loading && stats.count > 0" class="stats-banner">
-      <div class="stat-pill">
-        <span class="stat-label">Gasolineras:</span>
-        <strong class="stat-val">{{ stats.count }}</strong>
-      </div>
-
-      <div v-if="stats.minPrice" class="stat-pill highlight">
-        <span class="stat-label">Mínimo:</span>
-        <strong class="stat-val text-green">{{ stats.minPrice.toFixed(3) }} €</strong>
-      </div>
-
-      <div v-if="stats.avgPrice" class="stat-pill">
-        <span class="stat-label">Media zona:</span>
-        <strong class="stat-val">{{ stats.avgPrice.toFixed(3) }} €</strong>
-      </div>
+    <!-- Offline Mode discrete notification -->
+    <div v-if="isOfflineMode" class="offline-mode-badge">
+      <WifiOff :size="14" />
+      <span>Modo sin conexión (mostrando últimos datos guardados)</span>
     </div>
 
     <!-- Error State -->
@@ -96,18 +132,23 @@ onMounted(() => {
     <div v-else-if="stations.length === 0" class="empty-container">
       <Fuel :size="48" class="empty-icon" />
       <h3>No hay resultados en esta zona</h3>
-      <p>Prueba a ampliar el radio de búsqueda o desactivar algún filtro.</p>
+      <p>Probá ampliando el radio de búsqueda o cambiando el filtro de marca.</p>
     </div>
 
-    <!-- List of cards -->
+    <!-- Progressively rendered list of cards -->
     <div v-else ref="listContainer" class="cards-grid">
       <StationCard
-        v-for="station in stations"
+        v-for="station in visibleStations"
         :key="station.id"
         :station="station"
         :is-selected="station.id === selectedStationId"
         @select="emit('select', station)"
       />
+
+      <!-- IntersectionObserver Sentinel for progressive loading -->
+      <div ref="sentinelRef" class="sentinel-loader" v-if="hasMore">
+        <span class="loading-more-text">Cargando más gasolineras...</span>
+      </div>
     </div>
   </div>
 </template>
@@ -119,45 +160,24 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 12px 16px 24px;
   min-height: 200px;
 }
 
-.stats-banner {
+.offline-mode-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #d97706;
 
-  .stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: var(--bg-surface-subtle);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-full);
-    font-size: 0.725rem;
-    white-space: nowrap;
-
-    .stat-label {
-      color: var(--text-muted);
-    }
-
-    .stat-val {
-      font-weight: 700;
-      color: var(--text-main);
-
-      &.text-green {
-        color: var(--tier-low);
-      }
-    }
-
-    &.highlight {
-      background: var(--tier-low-bg);
-      border-color: rgba(16, 185, 129, 0.3);
-    }
+  [data-theme="dark"] & {
+    color: #fbbf24;
   }
 }
 
@@ -165,6 +185,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.sentinel-loader {
+  padding: 16px 0;
+  text-align: center;
+  .loading-more-text {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
 }
 
 // Loading Skeleton

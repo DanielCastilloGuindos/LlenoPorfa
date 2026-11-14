@@ -13,6 +13,7 @@
     "preview": "bun --filter @llenoporfa/client preview"
   },
   "devDependencies": {
-    "concurrently": "^10.0.7"
+    "concurrently": "^10.0.7",
+    "sharp": "^0.35.5"
   }
 }

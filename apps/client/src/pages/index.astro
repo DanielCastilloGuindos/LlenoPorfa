@@ -7,30 +7,87 @@ import '../styles/main.scss';
 <html lang="es" data-theme="system">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
 
     <!-- Primary Meta Tags -->
-    <title>llenoPorfa — Precios de Gasolineras en España en Tiempo Real</title>
-    <meta name="title" content="llenoPorfa — Precios de Gasolineras en España en Tiempo Real" />
-    <meta name="description" content="Consulta y compara precios de gasolina, diésel y GLP en España en tiempo real usando datos oficiales de MITECO. Ahorra en cada repostaje." />
+    <title>llenoPorfa — Gasolineras baratas en tiempo real</title>
+    <meta name="title" content="llenoPorfa — Gasolineras baratas en tiempo real" />
+    <meta
+      name="description"
+      content="Consultá y compará precios de gasolina, diésel y GLP en España en tiempo real usando datos oficiales de MITECO. Ahorrá en cada repostaje."
+    />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="llenoPorfa — Precios de Gasolineras en España" />
-    <meta property="og:description" content="Encuentra la gasolinera más barata y cercana con datos oficiales en vivo." />
+    <meta property="og:title" content="llenoPorfa — Gasolineras baratas en tiempo real" />
+    <meta
+      property="og:description"
+      content="Encontrá la gasolinera más barata y cercana con datos oficiales del MITECO en vivo."
+    />
+    <meta property="og:image" content="/icons/icon-512.png" />
 
-    <!-- Mobile PWA Meta Tags -->
-    <meta name="theme-color" content="#10b981" />
-    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- iOS Apple Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="llenoPorfa" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Preconnect to tile CDN -->
-    <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+    <!-- Dynamic Theme Color for Mobile Status Bar -->
+    <meta id="theme-color-meta" name="theme-color" content="#10b981" />
+
+    <!-- Preconnect to OpenStreetMap free tile server -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
+
+    <script is:inline>
+      // 1. Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => {
+              console.log('[PWA] Service Worker registrado con éxito:', reg.scope);
+            })
+            .catch((err) => {
+              console.warn('[PWA] Fallo en registro de Service Worker:', err);
+            });
+        });
+      }
+
+      // 2. Dynamic Status Bar Theme Color Synchronization
+      function updateThemeColor() {
+        const meta = document.getElementById('theme-color-meta');
+        if (!meta) return;
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        if (currentTheme === 'dark') {
+          meta.setAttribute('content', '#0b0f19');
+        } else if (currentTheme === 'light') {
+          meta.setAttribute('content', '#ffffff');
+        } else {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          meta.setAttribute('content', prefersDark ? '#0b0f19' : '#ffffff');
+        }
+      }
+
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.attributeName === 'data-theme') {
+            updateThemeColor();
+          }
+        }
+      });
+      observer.observe(document.documentElement, { attributes: true });
+      updateThemeColor();
+    </script>
   </head>
   <body>
     <AppShell client:only="vue" />

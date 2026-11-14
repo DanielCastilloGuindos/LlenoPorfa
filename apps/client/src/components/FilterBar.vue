@@ -1,50 +1,90 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { SlidersHorizontal, ArrowUpDown, Clock, Tag } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { SlidersHorizontal, ArrowUpDown, Clock, Tag, X } from 'lucide-vue-next';
 import { useStations } from '../composables/useStations';
+import { useHaptics } from '../composables/useHaptics';
 import type { FuelId, SortMode } from '../types';
 import gsap from 'gsap';
 
-const { fuel, radius, brand, open24h, sort, filtersCatalog, fetchStations } = useStations();
+const { fuel, radius, brand, open24h, sort, stats, filtersCatalog, fetchStations } = useStations();
+const { light, medium } = useHaptics();
 
 const expanded = ref(false);
-const filtersPanel = ref<HTMLElement | null>(null);
+const bottomSheetEl = ref<HTMLElement | null>(null);
 
-const toggleExpand = () => {
-  expanded.value = !expanded.value;
+// Touch drag to dismiss bottom sheet
+let startY = 0;
+let currentY = 0;
+let isDragging = false;
 
-  if (filtersPanel.value) {
-    if (expanded.value) {
-      gsap.fromTo(
-        filtersPanel.value,
-        { height: 0, opacity: 0 },
-        { height: 'auto', opacity: 1, duration: 0.28, ease: 'power2.out' }
-      );
-    } else {
-      gsap.to(filtersPanel.value, {
-        height: 0,
-        opacity: 0,
-        duration: 0.2,
-        ease: 'power2.in',
-      });
-    }
+const onTouchStart = (e: TouchEvent) => {
+  startY = e.touches[0].clientY;
+  isDragging = true;
+};
+
+const onTouchMove = (e: TouchEvent) => {
+  if (!isDragging || !bottomSheetEl.value) return;
+  currentY = e.touches[0].clientY;
+  const deltaY = currentY - startY;
+  if (deltaY > 0) {
+    gsap.set(bottomSheetEl.value, { y: deltaY, force3D: true });
+  }
+};
+
+const onTouchEnd = () => {
+  if (!isDragging || !bottomSheetEl.value) return;
+  isDragging = false;
+  const deltaY = currentY - startY;
+
+  if (deltaY > 90) {
+    // Dismiss
+    closeSheet();
+  } else {
+    // Snap back
+    gsap.to(bottomSheetEl.value, { y: 0, duration: 0.2, ease: 'power2.out', force3D: true });
+  }
+};
+
+const openSheet = () => {
+  medium();
+  expanded.value = true;
+};
+
+const closeSheet = () => {
+  if (bottomSheetEl.value) {
+    gsap.to(bottomSheetEl.value, {
+      y: 300,
+      opacity: 0,
+      duration: 0.22,
+      ease: 'power2.in',
+      force3D: true,
+      onComplete: () => {
+        expanded.value = false;
+        gsap.set(bottomSheetEl.value, { y: 0, opacity: 1 });
+      },
+    });
+  } else {
+    expanded.value = false;
   }
 };
 
 const handleFuelChange = (newFuel: FuelId) => {
   if (fuel.value === newFuel) return;
+  light();
   fuel.value = newFuel;
   fetchStations();
 };
 
 const handleRadiusChange = (newRadius: number) => {
   if (radius.value === newRadius) return;
+  light();
   radius.value = newRadius;
   fetchStations();
 };
 
 const handleSortChange = (newSort: SortMode) => {
   if (sort.value === newSort) return;
+  light();
   sort.value = newSort;
   fetchStations();
 };
@@ -52,11 +92,13 @@ const handleSortChange = (newSort: SortMode) => {
 const handleBrandChange = (e: Event) => {
   const target = e.target as HTMLSelectElement;
   brand.value = target.value;
+  light();
   fetchStations();
 };
 
 const handleOpen24hToggle = () => {
   open24h.value = !open24h.value;
+  light();
   fetchStations();
 };
 </script>
@@ -79,78 +121,116 @@ const handleOpen24hToggle = () => {
       <button
         class="toggle-filters-btn"
         :class="{ active: expanded || brand !== 'all' || open24h }"
-        @click="toggleExpand"
+        @click="expanded ? closeSheet() : openSheet()"
         aria-label="Más filtros"
       >
-        <SlidersHorizontal :size="15" />
+        <SlidersHorizontal :size="16" />
         <span class="filter-dot" v-if="brand !== 'all' || open24h"></span>
       </button>
     </div>
 
-    <!-- Secondary Filters Expandable Panel (GSAP Animated) -->
-    <div ref="filtersPanel" class="filters-panel" v-show="expanded">
-      <div class="panel-content">
-        <!-- Radius Selector -->
-        <div class="filter-group">
-          <label class="filter-label">Radio de búsqueda:</label>
-          <div class="radius-chips">
-            <button
-              v-for="r in [2, 5, 10, 25, 50]"
-              :key="r"
-              class="chip"
-              :class="{ active: radius === r }"
-              @click="handleRadiusChange(r)"
-            >
-              {{ r }} km
-            </button>
-          </div>
+    <!-- Sticky Stats Bar: Siempre fijo mostrando Mínimo y Medio -->
+    <div v-if="stats.count > 0" class="sticky-stats-summary">
+      <div class="stat-item">
+        <span class="stat-label">Surtidores:</span>
+        <strong class="stat-number">{{ stats.count }}</strong>
+      </div>
+
+      <div v-if="stats.minPrice" class="stat-item highlight">
+        <span class="stat-label">Mínimo:</span>
+        <strong class="stat-number text-green">{{ stats.minPrice.toFixed(3) }} €</strong>
+      </div>
+
+      <div v-if="stats.avgPrice" class="stat-item">
+        <span class="stat-label">Media:</span>
+        <strong class="stat-number">{{ stats.avgPrice.toFixed(3) }} €</strong>
+      </div>
+    </div>
+
+    <!-- Draggable Bottom Sheet for Advanced Filters on Mobile / Dropdown on Desktop -->
+    <div v-if="expanded" class="filters-backdrop" @click.self="closeSheet">
+      <div
+        ref="bottomSheetEl"
+        class="bottom-sheet-panel"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      >
+        <!-- Drag Handle for Mobile -->
+        <div class="drag-handle-bar">
+          <div class="handle"></div>
         </div>
 
-        <!-- Sort Option -->
-        <div class="filter-group">
-          <label class="filter-label">
-            <ArrowUpDown :size="13" />
-            <span>Ordenar por:</span>
-          </label>
-          <div class="sort-chips">
-            <button
-              v-for="s in filtersCatalog.sort_options"
-              :key="s.id"
-              class="chip"
-              :class="{ active: sort === s.id }"
-              @click="handleSortChange(s.id)"
-            >
-              {{ s.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Brand & 24H Toggle Row -->
-        <div class="filter-row">
-          <!-- Brand Selector -->
-          <div class="select-wrapper">
-            <Tag :size="14" class="select-icon" />
-            <select :value="brand" @change="handleBrandChange" class="filter-select">
-              <option value="all">Todas las marcas</option>
-              <option
-                v-for="b in filtersCatalog.popular_brands"
-                :key="b"
-                :value="b"
-              >
-                {{ b }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Open 24h switch -->
-          <button
-            class="switch-btn"
-            :class="{ active: open24h }"
-            @click="handleOpen24hToggle"
-          >
-            <Clock :size="14" />
-            <span>Abiertas 24h</span>
+        <div class="sheet-title-bar">
+          <h4>Filtros Avanzados</h4>
+          <button class="sheet-close-btn" @click="closeSheet" aria-label="Cerrar filtros">
+            <X :size="18" />
           </button>
+        </div>
+
+        <div class="panel-content">
+          <!-- Radius Selector -->
+          <div class="filter-group">
+            <label class="filter-label">Radio de búsqueda:</label>
+            <div class="radius-chips">
+              <button
+                v-for="r in [2, 5, 10, 25, 50]"
+                :key="r"
+                class="chip"
+                :class="{ active: radius === r }"
+                @click="handleRadiusChange(r)"
+              >
+                {{ r }} km
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Option -->
+          <div class="filter-group">
+            <label class="filter-label">
+              <ArrowUpDown :size="13" />
+              <span>Ordenar por:</span>
+            </label>
+            <div class="sort-chips">
+              <button
+                v-for="s in filtersCatalog.sort_options"
+                :key="s.id"
+                class="chip"
+                :class="{ active: sort === s.id }"
+                @click="handleSortChange(s.id)"
+              >
+                {{ s.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Brand & 24H Toggle Row -->
+          <div class="filter-row">
+            <!-- Brand Selector -->
+            <div class="select-wrapper">
+              <Tag :size="15" class="select-icon" />
+              <select :value="brand" @change="handleBrandChange" class="filter-select">
+                <option value="all">Todas las marcas</option>
+                <option
+                  v-for="b in filtersCatalog.popular_brands"
+                  :key="b"
+                  :value="b"
+                >
+                  {{ b }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Open 24h switch -->
+            <button
+              class="switch-btn"
+              :class="{ active: open24h }"
+              @click="handleOpen24hToggle"
+            >
+              <Clock :size="15" />
+              <span>Abiertas 24h</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -164,6 +244,9 @@ const handleOpen24hToggle = () => {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .fuel-pills-scroll {
@@ -188,6 +271,7 @@ const handleOpen24hToggle = () => {
   font-weight: 700;
   font-size: 0.8rem;
   white-space: nowrap;
+  min-height: 38px;
   transition: all var(--transition-fast);
 
   &:hover {
@@ -206,8 +290,10 @@ const handleOpen24hToggle = () => {
 .toggle-filters-btn {
   margin-left: auto;
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
@@ -228,26 +314,130 @@ const handleOpen24hToggle = () => {
 
   .filter-dot {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 6px;
-    height: 6px;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--color-primary);
   }
 }
 
-.filters-panel {
-  overflow: hidden;
+// Fixed stats bar below fuel pills
+.sticky-stats-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-color);
 
-  .panel-content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 12px;
-    margin-top: 8px;
-    border-top: 1px dashed var(--border-color);
+  .stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-size: 0.725rem;
+    white-space: nowrap;
+
+    .stat-label {
+      color: var(--text-muted);
+    }
+
+    .stat-number {
+      font-weight: 800;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+
+      &.text-green {
+        color: var(--tier-low);
+      }
+    }
+
+    &.highlight {
+      background: var(--tier-low-bg);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
   }
+}
+
+// Draggable Bottom Sheet modal for mobile
+.filters-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 180;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  @include desktop {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.bottom-sheet-panel {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-top: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 500px;
+  padding: 12px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  touch-action: pan-y;
+
+  @include desktop {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+  }
+}
+
+.drag-handle-bar {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+
+  @include desktop {
+    display: none;
+  }
+
+  .handle {
+    width: 38px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border-color);
+  }
+}
+
+.sheet-title-bar {
+  @include flex-between;
+  h4 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+  .sheet-close-btn {
+    color: var(--text-muted);
+    min-width: 36px;
+    min-height: 36px;
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .filter-group {
@@ -263,7 +453,6 @@ const handleOpen24hToggle = () => {
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 }
 
@@ -273,13 +462,14 @@ const handleOpen24hToggle = () => {
   gap: 6px;
 
   .chip {
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: var(--radius-sm);
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
-    font-size: 0.775rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-muted);
+    min-height: 38px;
     transition: all var(--transition-fast);
 
     &:hover {
@@ -290,7 +480,7 @@ const handleOpen24hToggle = () => {
       background: var(--color-primary-light);
       border-color: var(--color-primary);
       color: var(--color-primary-dark);
-      font-weight: 700;
+      font-weight: 800;
     }
   }
 }
@@ -316,11 +506,11 @@ const handleOpen24hToggle = () => {
 
   .filter-select {
     width: 100%;
-    padding: 7px 10px 7px 32px;
+    padding: 8px 10px 8px 34px;
     border-radius: var(--radius-md);
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
-    font-size: 0.8rem;
+    font-size: 0.825rem;
     font-weight: 600;
     color: var(--text-main);
   }
@@ -330,13 +520,14 @@ const handleOpen24hToggle = () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   font-weight: 600;
   color: var(--text-muted);
+  min-height: 44px;
   transition: all var(--transition-fast);
   white-space: nowrap;
 
@@ -348,7 +539,7 @@ const handleOpen24hToggle = () => {
     background: var(--color-primary-light);
     border-color: var(--color-primary);
     color: var(--color-primary-dark);
-    font-weight: 700;
+    font-weight: 800;
   }
 }
 </style>
