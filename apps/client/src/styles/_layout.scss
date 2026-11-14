@@ -1,0 +1,68 @@
+@use "mixins" as *;
+
+.app-root {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+
+  @include mobile {
+    flex-direction: column;
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  }
+
+  @include desktop {
+    flex-direction: row;
+  }
+}
+
+.main-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  position: relative;
+
+  @include mobile {
+    height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom));
+  }
+}
+
+// Split view on desktop for search and map
+.split-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  @include mobile {
+    flex-direction: column;
+  }
+
+  @include desktop {
+    flex-direction: row;
+
+    .split-sidebar {
+      width: 440px;
+      min-width: 400px;
+      height: 100%;
+      overflow-y: auto;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      z-index: 10;
+    }
+
+    .split-map-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      background: var(--bg-app);
+    }
+  }
+}

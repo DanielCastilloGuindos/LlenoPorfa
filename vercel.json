@@ -1,0 +1,34 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "bun run build",
+  "outputDirectory": "apps/client/dist",
+  "builds": [
+    {
+      "src": "apps/api/api/*.rs",
+      "use": "@vercel/rust"
+    },
+    {
+      "src": "apps/client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/api/api/$1.rs",
+      "headers": {
+        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300"
+      }
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "apps/client/$1"
+    }
+  ]
+}

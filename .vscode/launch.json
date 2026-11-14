@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev: All (Client + Mock API)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev:all"
+    },
+    {
+      "name": "Dev: Client (Astro + Vue)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev"
+    },
+    {
+      "name": "Dev: Bun API Server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "bun run dev:api"
+    },
+    {
+      "name": "Vercel Dev (Full Serverless Emulation)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "vercel dev"
+    }
+  ]
+}

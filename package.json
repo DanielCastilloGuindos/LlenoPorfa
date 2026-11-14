@@ -1,0 +1,18 @@
+{
+  "name": "llenoporfa",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter @llenoporfa/client dev",
+    "dev:api": "bun run apps/api/dev-server.ts",
+    "dev:all": "concurrently \"bun run apps/api/dev-server.ts\" \"bun --filter @llenoporfa/client dev\"",
+    "build": "bun --filter @llenoporfa/client build",
+    "preview": "bun --filter @llenoporfa/client preview"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7"
+  }
+}

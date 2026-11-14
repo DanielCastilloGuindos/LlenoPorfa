@@ -1,0 +1,38 @@
+---
+import AppShell from '../components/AppShell.vue';
+import '../styles/main.scss';
+---
+
+<!doctype html>
+<html lang="es" data-theme="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Primary Meta Tags -->
+    <title>llenoPorfa — Precios de Gasolineras en España en Tiempo Real</title>
+    <meta name="title" content="llenoPorfa — Precios de Gasolineras en España en Tiempo Real" />
+    <meta name="description" content="Consulta y compara precios de gasolina, diésel y GLP en España en tiempo real usando datos oficiales de MITECO. Ahorra en cada repostaje." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="llenoPorfa — Precios de Gasolineras en España" />
+    <meta property="og:description" content="Encuentra la gasolinera más barata y cercana con datos oficiales en vivo." />
+
+    <!-- Mobile PWA Meta Tags -->
+    <meta name="theme-color" content="#10b981" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="llenoPorfa" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preconnect to tile CDN -->
+    <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+  </head>
+  <body>
+    <AppShell client:only="vue" />
+  </body>
+</html>

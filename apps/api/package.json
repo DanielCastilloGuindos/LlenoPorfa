@@ -1,0 +1,9 @@
+{
+  "name": "@llenoporfa/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vercel Rust serverless API for MITECO fuel station prices",
+  "scripts": {
+    "build": "cargo build --release"
+  }
+}

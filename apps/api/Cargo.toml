@@ -1,0 +1,24 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "api_lib"
+path = "src/lib.rs"
+
+[dependencies]
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+vercel_runtime = "1.1"
+url = "2.5"
+
+[[bin]]
+name = "stations"
+path = "api/stations.rs"
+
+[[bin]]
+name = "filters"
+path = "api/filters.rs"

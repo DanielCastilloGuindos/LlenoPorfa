@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+bun.lockb
+bun.lock
+
+# Build outputs
+dist/
+.astro/
+apps/client/dist/
+
+# Rust builds
+target/
+apps/api/target/
+**/*.rs.bk
+
+# Vercel
+.vercel/
+
+# Environment & Logs
+.env
+.env.*
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
