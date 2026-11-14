@@ -18,14 +18,14 @@
   "routes": [
     {
       "src": "/api/stations",
-      "dest": "/apps/api/api/stations.rs",
+      "dest": "/apps/api/api/stations",
       "headers": {
         "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300"
       }
     },
     {
       "src": "/api/filters",
-      "dest": "/apps/api/api/filters.rs",
+      "dest": "/apps/api/api/filters",
       "headers": {
         "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300"
       }
