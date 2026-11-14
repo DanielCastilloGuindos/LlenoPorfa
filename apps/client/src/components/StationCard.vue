@@ -104,34 +104,37 @@ const handleFavoriteClick = (e: Event) => {
     <div class="card-footer">
       <span class="municipality">{{ station.municipality }}</span>
 
-      <!-- Official GPS navigation icons buttons -->
-      <div class="gps-quick-actions" @click.stop>
+      <!-- Direct official GPS logos (no button wrappers) -->
+      <div class="gps-direct-logos" @click.stop>
         <a
           :href="googleMapsUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="gps-btn"
+          class="gps-logo-item"
           title="Abrir en Google Maps"
+          aria-label="Google Maps"
         >
-          <GoogleMapsIcon />
+          <GoogleMapsIcon :size="20" />
         </a>
         <a
           :href="wazeUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="gps-btn"
+          class="gps-logo-item"
           title="Abrir en Waze"
+          aria-label="Waze"
         >
-          <WazeIcon />
+          <WazeIcon :size="20" />
         </a>
         <a
           :href="appleMapsUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="gps-btn"
+          class="gps-logo-item"
           title="Abrir en Apple Maps"
+          aria-label="Apple Maps"
         >
-          <AppleMapsIcon />
+          <AppleMapsIcon :size="20" />
         </a>
       </div>
     </div>
@@ -303,23 +306,33 @@ const handleFavoriteClick = (e: Event) => {
     @include truncate;
   }
 
-  .gps-quick-actions {
+  .gps-direct-logos {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
 
-    .gps-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: var(--radius-md);
-      background: var(--bg-surface-subtle);
-      border: 1px solid var(--border-color);
-      @include flex-center;
-      transition: all var(--transition-fast);
+    .gps-logo-item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      box-shadow: none;
+      padding: 2px;
+      line-height: 1;
+      opacity: 0.92;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.2s ease,
+                  filter 0.2s ease;
 
       &:hover {
-        background: var(--border-color);
-        transform: translateY(-1px);
+        opacity: 1;
+        transform: scale(1.22) translateY(-1px);
+        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+      }
+
+      &:active {
+        transform: scale(0.92);
       }
     }
   }

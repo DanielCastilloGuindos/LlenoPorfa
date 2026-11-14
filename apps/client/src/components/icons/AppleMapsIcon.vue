@@ -1,9 +1,20 @@
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    size?: number | string;
+  }>(),
+  {
+    size: 20,
+  }
+);
+</script>
+
 <template>
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 32 32"
-    width="18"
-    height="18"
+    :width="size"
+    :height="size"
     class="gps-logo-svg modern-apple"
     aria-label="Apple Maps"
   >

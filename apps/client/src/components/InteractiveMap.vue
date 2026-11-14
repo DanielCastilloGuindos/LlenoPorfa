@@ -312,31 +312,34 @@ onBeforeUnmount(() => {
             :href="`https://www.google.com/maps/dir/?api=1&destination=${selectedStation.latitude},${selectedStation.longitude}`"
             target="_blank"
             rel="noopener noreferrer"
-            class="gps-link"
+            class="gps-logo-item"
             @click.stop
-            title="Google Maps"
+            title="Abrir en Google Maps"
+            aria-label="Google Maps"
           >
-            <GoogleMapsIcon />
+            <GoogleMapsIcon :size="20" />
           </a>
           <a
             :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
             target="_blank"
             rel="noopener noreferrer"
-            class="gps-link"
+            class="gps-logo-item"
             @click.stop
-            title="Waze"
+            title="Abrir en Waze"
+            aria-label="Waze"
           >
-            <WazeIcon />
+            <WazeIcon :size="20" />
           </a>
           <a
             :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
             target="_blank"
             rel="noopener noreferrer"
-            class="gps-link"
+            class="gps-logo-item"
             @click.stop
-            title="Apple Maps"
+            title="Abrir en Apple Maps"
+            aria-label="Apple Maps"
           >
-            <AppleMapsIcon />
+            <AppleMapsIcon :size="20" />
           </a>
 
           <button class="more-btn" @click.stop="emit('open-detail', selectedStation)">
@@ -528,39 +531,54 @@ onBeforeUnmount(() => {
     .quick-nav-actions {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
 
-      .gps-link {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
-        border-radius: var(--radius-md);
-        background: var(--bg-surface-subtle);
-        border: 1px solid var(--border-color);
-        @include flex-center;
-        transition: transform var(--transition-fast);
+      .gps-logo-item {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        box-shadow: none;
+        padding: 3px;
+        line-height: 1;
+        opacity: 0.92;
+        transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    opacity 0.2s ease,
+                    filter 0.2s ease;
 
         &:hover {
-          transform: translateY(-1px);
+          opacity: 1;
+          transform: scale(1.2) translateY(-1px);
+          filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+        }
+
+        &:active {
+          transform: scale(0.92);
         }
       }
 
       .more-btn {
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-size: 0.75rem;
+        gap: 6px;
+        font-size: 0.775rem;
         font-weight: 700;
-        color: var(--color-primary-dark);
-        background: var(--color-primary-light);
-        padding: 6px 12px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        padding: 6px 14px;
         min-height: 36px;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-full);
+        box-shadow: 0 3px 10px var(--color-primary-glow);
+        transition: all var(--transition-fast);
 
-        [data-theme="dark"] & {
-          background: rgba(16, 185, 129, 0.2);
-          color: var(--color-primary);
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 14px var(--color-primary-glow);
+        }
+
+        &:active {
+          transform: scale(0.96);
         }
       }
     }
