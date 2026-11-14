@@ -1,8 +1,5 @@
 use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
-use api_lib::{
-    miteco,
-    models::{FiltersResponse, FuelOption, SortOption},
-};
+use api_lib::models::{FiltersResponse, FuelOption, SortOption};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {

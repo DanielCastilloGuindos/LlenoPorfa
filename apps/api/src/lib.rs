@@ -153,7 +153,7 @@ pub fn process_stations(
     let count = filtered.len();
     let center = match (center_lat, center_lng) {
         (Some(lat), Some(lng)) => Some(Coordinates { lat, lng }),
-        None => None,
+        _ => None,
     };
 
     StationsResponse {
