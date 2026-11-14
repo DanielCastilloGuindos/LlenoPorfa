@@ -3,18 +3,21 @@ import { ref, computed, watch, nextTick } from 'vue';
 import {
   X,
   Heart,
-  Navigation2,
   Clock,
   MapPin,
-  ExternalLink,
-  Fuel,
   Sparkles,
   Share2,
+  ReceiptText,
 } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
 import { useSettings } from '../composables/useSettings';
+import { useGeolocation } from '../composables/useGeolocation';
+import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
+import WazeIcon from './icons/WazeIcon.vue';
+import AppleMapsIcon from './icons/AppleMapsIcon.vue';
+import StationDetailMiniMap from './StationDetailMiniMap.vue';
 import gsap from 'gsap';
 
 const props = defineProps<{
@@ -23,19 +26,21 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
+  (e: 'record-refuel', station: Station): void;
 }>();
 
 const modalSheet = ref<HTMLElement | null>(null);
 const { isFavorite, toggleFavorite } = useFavorites();
-const { calculateTankSavings } = useStations();
+const { calculateTankSavings, fuel } = useStations();
 const { settings } = useSettings();
+const { locationState } = useGeolocation();
 
 const isFav = computed(() => (props.station ? isFavorite(props.station.id) : false));
 const savings = computed(() =>
   props.station ? calculateTankSavings(props.station.selected_fuel_price) : 0
 );
 
-// Map routing links
+// Map deep routing links
 const googleMapsUrl = computed(() => {
   if (!props.station) return '';
   return `https://www.google.com/maps/dir/?api=1&destination=${props.station.latitude},${props.station.longitude}`;
@@ -68,7 +73,13 @@ const handleShare = async () => {
       alert('¡Enlace copiado al portapapeles!');
     }
   } catch (err) {
-    // user cancelled
+    // cancelled
+  }
+};
+
+const handleRecordRefuel = () => {
+  if (props.station) {
+    emit('record-refuel', props.station);
   }
 };
 
@@ -80,7 +91,7 @@ watch(
         if (modalSheet.value) {
           gsap.fromTo(
             modalSheet.value,
-            { y: 100, opacity: 0 },
+            { y: 60, opacity: 0 },
             { y: 0, opacity: 1, duration: 0.28, ease: 'power3.out' }
           );
         }
@@ -126,6 +137,20 @@ watch(
             <X :size="20" />
           </button>
         </div>
+      </div>
+
+      <!-- Quick Action: Registrar repostaje aquí -->
+      <button class="record-refuel-btn" @click="handleRecordRefuel">
+        <ReceiptText :size="18" />
+        <span>Registrar repostaje aquí</span>
+      </button>
+
+      <!-- Relative position interactive mini-map -->
+      <div class="minimap-container">
+        <StationDetailMiniMap
+          :station="station"
+          :user-coords="locationState.coords"
+        />
       </div>
 
       <!-- Tank savings highlight box -->
@@ -187,32 +212,45 @@ watch(
             <span class="meta-val">{{ station.schedule || 'Consultar en estación' }}</span>
           </div>
         </div>
-
-        <div v-if="station.distance_km !== null" class="meta-box">
-          <Navigation2 :size="16" class="meta-icon" />
-          <div class="meta-info">
-            <span class="meta-label">Distancia:</span>
-            <span class="meta-val"><strong>{{ station.distance_km }} km</strong> desde tu punto</span>
-          </div>
-        </div>
       </div>
 
-      <!-- Navigation GPS Action Buttons -->
-      <div class="directions-actions">
-        <a :href="googleMapsUrl" target="_blank" rel="noopener noreferrer" class="nav-app-btn google">
-          <Navigation2 :size="16" />
-          <span>Google Maps</span>
-        </a>
+      <!-- Navigation GPS Action Buttons with Official Logos -->
+      <div class="gps-navigation-section">
+        <span class="section-heading">Abrir en navegador GPS</span>
+        <div class="directions-actions">
+          <a
+            :href="googleMapsUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="nav-app-btn google"
+            title="Abrir en Google Maps"
+          >
+            <GoogleMapsIcon />
+            <span>Google Maps</span>
+          </a>
 
-        <a :href="wazeUrl" target="_blank" rel="noopener noreferrer" class="nav-app-btn waze">
-          <Navigation2 :size="16" />
-          <span>Waze</span>
-        </a>
+          <a
+            :href="wazeUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="nav-app-btn waze"
+            title="Abrir en Waze"
+          >
+            <WazeIcon />
+            <span>Waze</span>
+          </a>
 
-        <a :href="appleMapsUrl" target="_blank" rel="noopener noreferrer" class="nav-app-btn apple">
-          <Navigation2 :size="16" />
-          <span>Apple Maps</span>
-        </a>
+          <a
+            :href="appleMapsUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="nav-app-btn apple"
+            title="Abrir en Apple Maps"
+          >
+            <AppleMapsIcon />
+            <span>Apple Maps</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -224,16 +262,16 @@ watch(
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 150;
+  z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 
   @include desktop {
     align-items: center;
-    padding: 20px;
+    padding: 24px;
   }
 }
 
@@ -243,11 +281,11 @@ watch(
   border-top: 1px solid var(--border-color);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 540px;
-  max-height: 85vh;
-  max-height: 85dvh;
+  max-width: 560px;
+  max-height: 88vh;
+  max-height: 88dvh;
   overflow-y: auto;
-  padding: 16px 20px 24px;
+  padding: 16px 20px 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -261,7 +299,7 @@ watch(
 .drag-handle-bar {
   display: flex;
   justify-content: center;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 
   @include desktop {
     display: none;
@@ -341,6 +379,31 @@ watch(
       }
     }
   }
+}
+
+.record-refuel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px var(--color-primary-glow);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+}
+
+.minimap-container {
+  width: 100%;
 }
 
 .savings-banner {
@@ -459,41 +522,42 @@ watch(
   }
 }
 
-.directions-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.gps-navigation-section {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding-top: 4px;
 
-  .nav-app-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    border-radius: var(--radius-md);
+  .section-heading {
+    font-size: 0.75rem;
     font-weight: 700;
-    font-size: 0.8rem;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
 
-    &:hover {
-      transform: translateY(-1px);
-    }
+  .directions-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
 
-    &.google {
-      background: #4285f4;
-      color: #ffffff;
-    }
-
-    &.waze {
-      background: #33ccff;
-      color: #0b1a2d;
-    }
-
-    &.apple {
-      background: var(--bg-surface-elevated);
-      color: var(--text-main);
+    .nav-app-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 8px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 0.8rem;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--border-color);
+        transform: translateY(-1px);
+      }
     }
   }
 }

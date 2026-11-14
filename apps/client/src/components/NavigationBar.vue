@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
-import { Search, BookmarkCheck, MapPin, Heart, Settings, Fuel } from 'lucide-vue-next';
+import { ref } from 'vue';
+import { Search, ReceiptText, MapPin, Heart, Settings, Fuel } from 'lucide-vue-next';
 import type { TabId } from '../types';
 import gsap from 'gsap';
 
@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 const tabs = [
   { id: 'search' as TabId, label: 'Buscar', icon: Search },
-  { id: 'saved' as TabId, label: 'Guardadas', icon: BookmarkCheck },
+  { id: 'refuel' as TabId, label: 'Registro', icon: ReceiptText },
   { id: 'map' as TabId, label: 'Mapa', icon: MapPin },
   { id: 'favorites' as TabId, label: 'Favoritos', icon: Heart },
   { id: 'settings' as TabId, label: 'Ajustes', icon: Settings },

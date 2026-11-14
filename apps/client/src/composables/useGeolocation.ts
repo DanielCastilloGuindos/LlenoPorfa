@@ -1,23 +1,24 @@
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import type { Coordinates } from '../types';
 
 export interface LocationState {
   coords: Coordinates | null;
   name: string;
   loading: boolean;
+  prompting: boolean;
   error: string | null;
   permissionDenied: boolean;
 }
 
 const locationState = ref<LocationState>({
-  coords: { lat: 40.4168, lng: -3.7038 }, // Default: Madrid center
+  coords: { lat: 40.4168, lng: -3.7038 }, // Default: Madrid center fallback
   name: 'Madrid Centro',
   loading: false,
+  prompting: false,
   error: null,
   permissionDenied: false,
 });
 
-// Common Spanish cities for quick selection when GPS is disabled
 export const POPULAR_LOCATIONS: { name: string; coords: Coordinates }[] = [
   { name: 'Madrid', coords: { lat: 40.4168, lng: -3.7038 } },
   { name: 'Barcelona', coords: { lat: 41.3879, lng: 2.1699 } },
@@ -33,12 +34,15 @@ export function useGeolocation() {
   const requestCurrentLocation = (): Promise<Coordinates> => {
     return new Promise((resolve, reject) => {
       if (typeof window === 'undefined' || !navigator.geolocation) {
-        locationState.value.error = 'Geolocalización no soportada';
+        locationState.value.error = 'Tu dispositivo o navegador no soporta geolocalización.';
         locationState.value.permissionDenied = true;
+        locationState.value.loading = false;
+        locationState.value.prompting = false;
         return reject(new Error('Geolocation unsupported'));
       }
 
       locationState.value.loading = true;
+      locationState.value.prompting = true;
       locationState.value.error = null;
 
       navigator.geolocation.getCurrentPosition(
@@ -50,22 +54,25 @@ export function useGeolocation() {
           locationState.value.coords = userCoords;
           locationState.value.name = 'Mi Ubicación actual';
           locationState.value.loading = false;
+          locationState.value.prompting = false;
           locationState.value.permissionDenied = false;
+          locationState.value.error = null;
           resolve(userCoords);
         },
         (err) => {
           locationState.value.loading = false;
+          locationState.value.prompting = false;
           locationState.value.permissionDenied = true;
           locationState.value.error =
             err.code === err.PERMISSION_DENIED
-              ? 'Permiso de ubicación denegado. Selecciona una ciudad o busca manualmente.'
-              : 'No se pudo obtener la ubicación precisa.';
+              ? 'Permiso de ubicación no concedido. Podés buscar manualmente por ciudad o código postal.'
+              : 'No pudimos obtener tu ubicación con precisión. Usando zona por defecto.';
           reject(err);
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 60000,
+          maximumAge: 30000,
         }
       );
     });
@@ -78,10 +85,15 @@ export function useGeolocation() {
     locationState.value.permissionDenied = false;
   };
 
+  const dismissError = () => {
+    locationState.value.error = null;
+  };
+
   return {
     locationState,
     requestCurrentLocation,
     setManualLocation,
+    dismissError,
     popularLocations: POPULAR_LOCATIONS,
   };
 }

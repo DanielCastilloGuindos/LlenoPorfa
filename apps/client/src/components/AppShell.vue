@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
+import { AlertTriangle, MapPin, X, Loader2 } from 'lucide-vue-next';
 import type { TabId, Station } from '../types';
 import NavigationBar from './NavigationBar.vue';
 import SearchHeader from './SearchHeader.vue';
@@ -8,18 +9,21 @@ import StationList from './StationList.vue';
 import InteractiveMap from './InteractiveMap.vue';
 import StationDetailModal from './StationDetailModal.vue';
 import SaveSearchModal from './SaveSearchModal.vue';
-import SavedSearchesView from './SavedSearchesView.vue';
+import RefuelHistoryView from './RefuelHistoryView.vue';
 import FavoritesView from './FavoritesView.vue';
 import SettingsView from './SettingsView.vue';
 
 import { useStations } from '../composables/useStations';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useSettings } from '../composables/useSettings';
+import { useRefuelLogs } from '../composables/useRefuelLogs';
 import gsap from 'gsap';
 
 const activeTab = ref<TabId>('search');
 const showSaveModal = ref(false);
+const showCityModalFromBanner = ref(false);
 const tabContentEl = ref<HTMLElement | null>(null);
+const interactiveMapRef = ref<any>(null);
 
 const {
   filteredStations,
@@ -27,28 +31,34 @@ const {
   error,
   selectedStation,
   hoveredStationId,
+  fuel,
   fetchFilters,
   fetchStations,
   selectStation,
 } = useStations();
 
-const { locationState, requestCurrentLocation } = useGeolocation();
+const { locationState, requestCurrentLocation, dismissError, popularLocations, setManualLocation } =
+  useGeolocation();
 const { settings } = useSettings();
+const { setPrefillFromStation } = useRefuelLogs();
 
-// GSAP Transition when switching tabs
-watch(activeTab, () => {
+// Tab Transition and Map Invalidation
+watch(activeTab, (newTab) => {
   nextTick(() => {
     if (tabContentEl.value) {
       gsap.fromTo(
         tabContentEl.value,
         { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, duration: 0.25, ease: 'power2.out' }
+        { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' }
       );
+    }
+    if (newTab === 'map' || newTab === 'search') {
+      interactiveMapRef.value?.invalidateSize();
     }
   });
 });
 
-const handleStationSelect = (station: Station) => {
+const handleStationSelect = (station: Station | null) => {
   selectStation(station);
 };
 
@@ -56,15 +66,31 @@ const handleModalClose = () => {
   selectStation(null);
 };
 
+// Quick action from station detail: "Registrar repostaje aquí"
+const handleRecordRefuel = (station: Station) => {
+  setPrefillFromStation(station, fuel.value);
+  selectStation(null);
+  activeTab.value = 'refuel';
+};
+
+const handleSelectManualCity = (name: string, coords: { lat: number; lng: number }) => {
+  setManualLocation(name, coords);
+  showCityModalFromBanner.value = false;
+  fetchStations();
+};
+
 onMounted(async () => {
   await fetchFilters();
-  // Try GPS location silently first, otherwise Madrid fallback is already set
+
+  // Requirement 4: Automatic geolocation prompt on startup
   try {
     await requestCurrentLocation();
-  } catch (e) {
-    // Falls back gracefully to default Madrid center
+  } catch (err) {
+    // Graceful fallback to default center is active in locationState
+  } finally {
+    // Automatically query stations once coordinates are settled
+    await fetchStations();
   }
-  await fetchStations();
 });
 </script>
 
@@ -75,6 +101,26 @@ onMounted(async () => {
 
     <!-- Main Viewport -->
     <main class="main-viewport">
+      <!-- Discreet Geolocation Warning Banner if Permission was Denied -->
+      <div
+        v-if="locationState.permissionDenied && locationState.error"
+        class="geo-warning-banner"
+      >
+        <div class="banner-text">
+          <AlertTriangle :size="16" class="warn-icon" />
+          <span>{{ locationState.error }}</span>
+        </div>
+        <div class="banner-actions">
+          <button class="banner-action-btn" @click="showCityModalFromBanner = true">
+            <MapPin :size="14" />
+            <span>Elegir ciudad</span>
+          </button>
+          <button class="banner-close" @click="dismissError" aria-label="Cerrar aviso">
+            <X :size="14" />
+          </button>
+        </div>
+      </div>
+
       <!-- Search View / Map View Desktop Split or Mobile Views -->
       <template v-if="activeTab === 'search' || activeTab === 'map'">
         <div class="split-layout">
@@ -107,23 +153,26 @@ onMounted(async () => {
             </div>
 
             <InteractiveMap
+              ref="interactiveMapRef"
               :stations="filteredStations"
               :selected-station="selectedStation"
               :hovered-station-id="hoveredStationId"
               :center="locationState.coords"
+              :is-active="activeTab === 'map'"
               @select-station="handleStationSelect"
+              @open-detail="handleStationSelect"
             />
           </div>
         </div>
       </template>
 
-      <!-- Saved Searches Tab -->
+      <!-- Refuel History Tab (Replaces 'saved') -->
       <div
-        v-else-if="activeTab === 'saved'"
+        v-else-if="activeTab === 'refuel'"
         ref="tabContentEl"
         class="tab-view-container"
       >
-        <SavedSearchesView @applied="activeTab = 'search'" />
+        <RefuelHistoryView />
       </div>
 
       <!-- Favorites Tab -->
@@ -145,10 +194,11 @@ onMounted(async () => {
       </div>
     </main>
 
-    <!-- Station Detail Sliding Sheet / Modal -->
+    <!-- Station Detail Sliding Sheet / Modal with MiniMap & Official GPS Logos -->
     <StationDetailModal
       :station="selectedStation"
       @close="handleModalClose"
+      @record-refuel="handleRecordRefuel"
     />
 
     <!-- Save Search Preset Modal -->
@@ -156,11 +206,91 @@ onMounted(async () => {
       v-if="showSaveModal"
       @close="showSaveModal = false"
     />
+
+    <!-- City Selection Modal from Banner -->
+    <div
+      v-if="showCityModalFromBanner"
+      class="city-modal-backdrop"
+      @click.self="showCityModalFromBanner = false"
+    >
+      <div class="city-modal-card">
+        <div class="city-modal-header">
+          <h3>Seleccionar Ciudad Manualmente</h3>
+          <button class="close-btn" @click="showCityModalFromBanner = false">
+            <X :size="18" />
+          </button>
+        </div>
+        <div class="city-grid">
+          <button
+            v-for="city in popularLocations"
+            :key="city.name"
+            class="city-btn"
+            @click="handleSelectManualCity(city.name, city.coords)"
+          >
+            <span>{{ city.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 @use "../styles/mixins" as *;
+
+.geo-warning-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+  color: #d97706;
+  padding: 8px 14px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  @include flex-between;
+  gap: 10px;
+  z-index: 60;
+
+  [data-theme="dark"] & {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.18);
+  }
+
+  .banner-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .warn-icon {
+      flex-shrink: 0;
+    }
+  }
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .banner-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #f59e0b;
+      color: #ffffff;
+      border-radius: var(--radius-sm);
+      font-size: 0.725rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .banner-close {
+      color: inherit;
+      padding: 2px;
+      opacity: 0.8;
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}
 
 .split-layout {
   display: flex;
@@ -170,14 +300,21 @@ onMounted(async () => {
 
   @include mobile {
     position: relative;
+    height: 100%;
 
     .mobile-hidden {
       display: none !important;
     }
 
-    .split-sidebar, .split-map-container {
+    .split-sidebar {
       width: 100%;
       height: 100%;
+    }
+
+    .split-map-container {
+      width: 100%;
+      height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom));
+      position: relative;
     }
   }
 
@@ -230,5 +367,63 @@ onMounted(async () => {
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+// City selection modal from banner
+.city-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  @include flex-center;
+  padding: 16px;
+}
+
+.city-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .city-modal-header {
+    @include flex-between;
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+    .close-btn {
+      color: var(--text-muted);
+    }
+  }
+
+  .city-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+
+    .city-btn {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: left;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
+        border-color: var(--color-primary);
+      }
+    }
+  }
 }
 </style>

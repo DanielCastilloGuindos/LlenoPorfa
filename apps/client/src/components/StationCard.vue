@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Heart, Navigation2, Clock, Sparkles } from 'lucide-vue-next';
+import { Heart, Clock, Sparkles } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
+import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
+import WazeIcon from './icons/WazeIcon.vue';
+import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 
 const props = defineProps<{
   station: Station;
@@ -27,8 +30,16 @@ const tierClass = computed(() => {
   return 'tier-low';
 });
 
-const directionsUrl = computed(() => {
+const googleMapsUrl = computed(() => {
   return `https://www.google.com/maps/dir/?api=1&destination=${props.station.latitude},${props.station.longitude}`;
+});
+
+const wazeUrl = computed(() => {
+  return `https://waze.com/ul?ll=${props.station.latitude},${props.station.longitude}&navigate=yes`;
+});
+
+const appleMapsUrl = computed(() => {
+  return `https://maps.apple.com/?daddr=${props.station.latitude},${props.station.longitude}&dirflg=d`;
 });
 
 const handleFavoriteClick = (e: Event) => {
@@ -93,16 +104,36 @@ const handleFavoriteClick = (e: Event) => {
     <div class="card-footer">
       <span class="municipality">{{ station.municipality }}</span>
 
-      <a
-        :href="directionsUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="directions-btn"
-        @click.stop
-      >
-        <Navigation2 :size="13" />
-        <span>Cómo llegar</span>
-      </a>
+      <!-- Official GPS navigation icons buttons -->
+      <div class="gps-quick-actions" @click.stop>
+        <a
+          :href="googleMapsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="gps-btn"
+          title="Abrir en Google Maps"
+        >
+          <GoogleMapsIcon />
+        </a>
+        <a
+          :href="wazeUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="gps-btn"
+          title="Abrir en Waze"
+        >
+          <WazeIcon />
+        </a>
+        <a
+          :href="appleMapsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="gps-btn"
+          title="Abrir en Apple Maps"
+        >
+          <AppleMapsIcon />
+        </a>
+      </div>
     </div>
   </article>
 </template>
@@ -272,25 +303,24 @@ const handleFavoriteClick = (e: Event) => {
     @include truncate;
   }
 
-  .directions-btn {
-    display: inline-flex;
+  .gps-quick-actions {
+    display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--color-primary-dark);
-    background: var(--color-primary-light);
-    padding: 5px 10px;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    gap: 6px;
 
-    [data-theme="dark"] & {
-      background: rgba(16, 185, 129, 0.2);
-      color: var(--color-primary);
-    }
+    .gps-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      @include flex-center;
+      transition: all var(--transition-fast);
 
-    &:hover {
-      transform: translateY(-1px);
+      &:hover {
+        background: var(--border-color);
+        transform: translateY(-1px);
+      }
     }
   }
 }

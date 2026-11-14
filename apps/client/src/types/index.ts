@@ -20,7 +20,7 @@ export interface Station {
   province: string;
   postal_code: string;
   schedule: string;
-  is_open_24h: bool;
+  is_open_24h: boolean;
   latitude: number;
   longitude: number;
   distance_km: number | null;
@@ -59,17 +59,18 @@ export interface FiltersApiResponse {
   sort_options: { id: SortMode; label: string }[];
 }
 
-export interface SavedSearch {
+export interface RefuelLog {
   id: string;
-  title: string;
-  fuel: FuelId;
-  radius: number;
-  sort: SortMode;
-  brand: string | null;
-  open24h: boolean;
-  locationName: string;
-  lat: number | null;
-  lng: number | null;
+  stationName: string;
+  stationId?: string;
+  stationAddress?: string;
+  date: string; // ISO string e.g. 2026-11-14T16:20
+  fuelType: FuelId;
+  pricePerLiter: number;
+  liters: number;
+  totalAmount: number;
+  odometerKm?: number | null;
+  notes?: string;
   createdAt: number;
 }
 
@@ -80,4 +81,4 @@ export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
 }
 
-export type TabId = 'search' | 'saved' | 'map' | 'favorites' | 'settings';
+export type TabId = 'search' | 'refuel' | 'map' | 'favorites' | 'settings';

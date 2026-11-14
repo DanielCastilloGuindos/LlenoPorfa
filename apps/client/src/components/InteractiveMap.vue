@@ -1,33 +1,82 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
-import { useStations } from '../composables/useStations';
 import { useGeolocation } from '../composables/useGeolocation';
+import { useSettings } from '../composables/useSettings';
+import { useStations } from '../composables/useStations';
+import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
+import WazeIcon from './icons/WazeIcon.vue';
+import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 
 const props = defineProps<{
   stations: Station[];
   selectedStation: Station | null;
   hoveredStationId?: string | null;
   center?: Coordinates | null;
+  isActive?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'select-station', station: Station): void;
+  (e: 'open-detail', station: Station): void;
 }>();
 
 const mapContainer = ref<HTMLElement | null>(null);
 let mapInstance: any = null;
 let L: any = null;
+let currentTileLayer: any = null;
 let markersLayer: any = null;
 let userMarker: any = null;
+let resizeObserver: ResizeObserver | null = null;
+let themeObserver: MutationObserver | null = null;
 const markerMap = new Map<string, any>();
 
-const { locationState } = useGeolocation();
+const { locationState, requestCurrentLocation } = useGeolocation();
+const { settings } = useSettings();
+const { calculateTankSavings } = useStations();
+
+// Tile URLs without API keys
+const LIGHT_TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const OSM_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+
+const isCurrentThemeDark = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+};
+
+const updateTileTheme = () => {
+  if (!mapInstance || !L) return;
+  const isDark = isCurrentThemeDark();
+  const targetUrl = isDark ? DARK_TILES : LIGHT_TILES;
+
+  if (currentTileLayer) {
+    currentTileLayer.remove();
+  }
+
+  currentTileLayer = L.tileLayer(targetUrl, {
+    attribution: ATTRIBUTION,
+    subdomains: 'abcd',
+    maxZoom: 19,
+  });
+
+  currentTileLayer.on('tileerror', (error: any) => {
+    // Graceful fallback to standard OSM if CARTO is unreachable
+    console.warn('CARTO tile error, falling back to OpenStreetMap', error);
+    if (mapInstance && currentTileLayer) {
+      currentTileLayer.setUrl(OSM_FALLBACK);
+    }
+  });
+
+  currentTileLayer.addTo(mapInstance);
+};
 
 const initMap = async () => {
   if (typeof window === 'undefined' || !mapContainer.value) return;
 
-  // Dynamically import Leaflet so it never executes during SSR
   L = await import('leaflet');
   await import('leaflet/dist/leaflet.css');
 
@@ -39,21 +88,46 @@ const initMap = async () => {
     zoomControl: false,
   });
 
-  // Zoom control in top right
-  L.control.zoom({ position: 'topright' }).addTo(mapInstance);
-
-  // Free OpenStreetMap CartoDB Positron / OSM tiles for crisp mobile look
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19,
-  }).addTo(mapInstance);
-
+  updateTileTheme();
   markersLayer = L.layerGroup().addTo(mapInstance);
 
   renderUserLocation();
   renderStationMarkers();
+
+  // Watch container resize
+  if (window.ResizeObserver && mapContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      invalidateSize();
+    });
+    resizeObserver.observe(mapContainer.value);
+  }
+
+  // Watch html data-theme attribute
+  themeObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.attributeName === 'data-theme') {
+        updateTileTheme();
+      }
+    }
+  });
+  themeObserver.observe(document.documentElement, { attributes: true });
+
+  invalidateSize();
 };
+
+const invalidateSize = () => {
+  if (!mapInstance) return;
+  nextTick(() => {
+    mapInstance.invalidateSize();
+    setTimeout(() => {
+      if (mapInstance) mapInstance.invalidateSize();
+    }, 150);
+  });
+};
+
+defineExpose({
+  invalidateSize,
+});
 
 const renderUserLocation = () => {
   if (!mapInstance || !L || !locationState.value.coords) return;
@@ -71,7 +145,7 @@ const renderUserLocation = () => {
 
   userMarker = L.marker([locationState.value.coords.lat, locationState.value.coords.lng], {
     icon: userIcon,
-    zIndexOffset: 500,
+    zIndexOffset: 600,
   }).addTo(mapInstance);
 };
 
@@ -112,13 +186,11 @@ const renderStationMarkers = () => {
     markerMap.set(station.id, marker);
   });
 
-  // Fit bounds if stations are present
   if (props.stations.length > 0 && !props.selectedStation) {
     mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
   }
 };
 
-// Update active marker styling
 const updateSelectedMarker = (selectedId: string | null) => {
   if (!L) return;
   props.stations.forEach((station) => {
@@ -147,7 +219,7 @@ const updateSelectedMarker = (selectedId: string | null) => {
       marker.setZIndexOffset(1000);
       mapInstance.panTo([station.latitude, station.longitude], {
         animate: true,
-        duration: 0.5,
+        duration: 0.45,
       });
     } else {
       marker.setZIndexOffset(0);
@@ -155,42 +227,45 @@ const updateSelectedMarker = (selectedId: string | null) => {
   });
 };
 
-watch(
-  () => props.stations,
-  () => {
-    renderStationMarkers();
-  },
-  { deep: false }
-);
+const zoomIn = () => mapInstance?.zoomIn();
+const zoomOut = () => mapInstance?.zoomOut();
 
-watch(
-  () => props.selectedStation,
-  (newVal) => {
-    updateSelectedMarker(newVal?.id || null);
-  }
-);
-
-watch(
-  () => props.hoveredStationId,
-  (newId) => {
-    if (!props.selectedStation) {
-      updateSelectedMarker(newId || null);
+const centerOnUser = async () => {
+  if (!locationState.value.coords) {
+    try {
+      await requestCurrentLocation();
+    } catch (e) {
+      return;
     }
   }
-);
-
-watch(
-  () => locationState.value.coords,
-  () => {
-    renderUserLocation();
+  if (mapInstance && locationState.value.coords) {
+    mapInstance.flyTo([locationState.value.coords.lat, locationState.value.coords.lng], 15, {
+      duration: 1.2,
+    });
   }
-);
+};
+
+watch(() => props.stations, () => renderStationMarkers(), { deep: false });
+watch(() => props.selectedStation, (newVal) => updateSelectedMarker(newVal?.id || null));
+watch(() => props.hoveredStationId, (newId) => {
+  if (!props.selectedStation) updateSelectedMarker(newId || null);
+});
+watch(() => locationState.value.coords, () => renderUserLocation());
+watch(() => props.isActive, (active) => {
+  if (active) invalidateSize();
+});
 
 onMounted(() => {
   initMap();
+  window.addEventListener('orientationchange', invalidateSize);
+  window.addEventListener('resize', invalidateSize);
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('orientationchange', invalidateSize);
+  window.removeEventListener('resize', invalidateSize);
+  resizeObserver?.disconnect();
+  themeObserver?.disconnect();
   if (mapInstance) {
     mapInstance.remove();
     mapInstance = null;
@@ -201,19 +276,330 @@ onBeforeUnmount(() => {
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="leaflet-map-element"></div>
+
+    <!-- Floating Map Controls (Zoom + Recenter) -->
+    <div class="map-controls">
+      <button class="map-ctrl-btn" @click="zoomIn" title="Acercar" aria-label="Acercar">
+        <Plus :size="18" />
+      </button>
+      <button class="map-ctrl-btn" @click="zoomOut" title="Alejar" aria-label="Alejar">
+        <Minus :size="18" />
+      </button>
+      <button
+        class="map-ctrl-btn gps-btn"
+        :class="{ active: locationState.loading }"
+        @click="centerOnUser"
+        title="Centrar en mi ubicación"
+        aria-label="Centrar en mi ubicación"
+      >
+        <Navigation :size="18" />
+      </button>
+    </div>
+
+    <!-- Mobile Floating Bottom Preview Card when a station is clicked on map -->
+    <div
+      v-if="selectedStation"
+      class="mobile-bottom-station-card"
+      @click="emit('open-detail', selectedStation)"
+    >
+      <button
+        class="dismiss-btn"
+        @click.stop="emit('select-station', null as any)"
+        aria-label="Cerrar vista previa"
+      >
+        <X :size="16" />
+      </button>
+
+      <div class="station-preview-header">
+        <div class="brand-block">
+          <h4>{{ selectedStation.brand }}</h4>
+          <p>{{ selectedStation.address }}</p>
+        </div>
+        <div class="price-block">
+          <span class="price">
+            {{ selectedStation.selected_fuel_price ? selectedStation.selected_fuel_price.toFixed(3) : '---' }}
+          </span>
+          <span class="unit">€/L</span>
+        </div>
+      </div>
+
+      <div class="station-preview-footer">
+        <div class="info-badges">
+          <span v-if="selectedStation.distance_km !== null" class="badge">
+            {{ selectedStation.distance_km }} km
+          </span>
+          <span v-if="selectedStation.is_open_24h" class="badge tag-24h">24H</span>
+          <span
+            v-if="calculateTankSavings(selectedStation.selected_fuel_price) > 0.5"
+            class="badge savings"
+          >
+            <Sparkles :size="11" />
+            ~{{ calculateTankSavings(selectedStation.selected_fuel_price).toFixed(2) }} €
+          </span>
+        </div>
+
+        <div class="quick-nav-actions">
+          <a
+            :href="`https://www.google.com/maps/dir/?api=1&destination=${selectedStation.latitude},${selectedStation.longitude}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="gps-link"
+            @click.stop
+            title="Google Maps"
+          >
+            <GoogleMapsIcon />
+          </a>
+          <a
+            :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="gps-link"
+            @click.stop
+            title="Waze"
+          >
+            <WazeIcon />
+          </a>
+          <a
+            :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="gps-link"
+            @click.stop
+            title="Apple Maps"
+          >
+            <AppleMapsIcon />
+          </a>
+
+          <button class="more-btn" @click.stop="emit('open-detail', selectedStation)">
+            <span>Detalle</span>
+            <ArrowRight :size="14" />
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+@use "../styles/mixins" as *;
+
 .map-wrapper {
   width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
+  min-height: 280px;
+
+  @include mobile {
+    height: 100%;
+    min-height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom));
+  }
 }
 
 .leaflet-map-element {
   width: 100%;
   height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// Floating controls
+.map-controls {
+  position: absolute;
+  top: 70px;
+  right: 14px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @include desktop {
+    top: 20px;
+    right: 20px;
+  }
+
+  .map-ctrl-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    @include flex-center;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: var(--bg-surface-subtle);
+      transform: translateY(-1px);
+    }
+
+    &.gps-btn {
+      color: var(--color-primary);
+      margin-top: 4px;
+    }
+  }
+}
+
+// Mobile bottom preview sheet
+.mobile-bottom-station-card {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 450;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideUp 0.25s ease-out;
+
+  @include desktop {
+    max-width: 420px;
+    left: 20px;
+    right: auto;
+    bottom: 20px;
+  }
+
+  .dismiss-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: var(--radius-full);
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+
+  .station-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-right: 20px;
+
+    .brand-block {
+      h4 {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-main);
+        @include truncate;
+      }
+      p {
+        font-size: 0.775rem;
+        color: var(--text-muted);
+        @include truncate;
+      }
+    }
+
+    .price-block {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      .price {
+        font-size: 1.35rem;
+        font-weight: 900;
+        font-family: var(--font-mono);
+        color: var(--tier-low);
+      }
+      .unit {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+    }
+  }
+
+  .station-preview-footer {
+    @include flex-between;
+    gap: 8px;
+
+    .info-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .badge {
+        font-size: 0.725rem;
+        font-weight: 600;
+        padding: 3px 7px;
+        background: var(--bg-surface-subtle);
+        border-radius: var(--radius-sm);
+        color: var(--text-muted);
+
+        &.tag-24h {
+          color: var(--tier-low);
+          background: var(--tier-low-bg);
+        }
+
+        &.savings {
+          color: var(--tier-low);
+          background: var(--tier-low-bg);
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-weight: 700;
+        }
+      }
+    }
+
+    .quick-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .gps-link {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-md);
+        background: var(--bg-surface-subtle);
+        border: 1px solid var(--border-color);
+        @include flex-center;
+        transition: transform var(--transition-fast);
+
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
+
+      .more-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--color-primary-dark);
+        background: var(--color-primary-light);
+        padding: 6px 10px;
+        border-radius: var(--radius-md);
+
+        [data-theme="dark"] & {
+          background: rgba(16, 185, 129, 0.2);
+          color: var(--color-primary);
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
