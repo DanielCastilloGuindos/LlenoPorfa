@@ -11,9 +11,10 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@common/*": ["../common/src/*"],
+      "@llenoporfa/common": ["../common/src/index.ts"]
     }
   },
   "include": ["src/**/*", "env.d.ts"]

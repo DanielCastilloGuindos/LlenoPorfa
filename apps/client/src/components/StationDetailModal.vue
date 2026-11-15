@@ -9,6 +9,8 @@ import {
   Share2,
   ReceiptText,
   Cylinder,
+  Zap,
+  Fuel,
 } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
@@ -323,6 +325,55 @@ watch(
             <strong class="fuel-value">
               {{ station.prices.glp ? station.prices.glp.toFixed(3) + ' €' : 'No disp.' }}
             </strong>
+          </div>
+
+          <div class="fuel-price-card" :class="{ empty: !station.prices.gnc }">
+            <span class="fuel-name">GNC</span>
+            <strong class="fuel-value">
+              {{ station.prices.gnc ? station.prices.gnc.toFixed(3) + ' €' : 'No disp.' }}
+            </strong>
+          </div>
+
+          <div class="fuel-price-card" :class="{ empty: !station.prices.electric_kwh }">
+            <span class="fuel-name">Electricidad</span>
+            <strong class="fuel-value">
+              {{ station.prices.electric_kwh ? station.prices.electric_kwh.toFixed(3) + ' €/kWh' : 'No disp.' }}
+            </strong>
+          </div>
+
+          <div class="fuel-price-card" :class="{ empty: !station.prices.hydrogen_kg }">
+            <span class="fuel-name">Hidrógeno</span>
+            <strong class="fuel-value">
+              {{ station.prices.hydrogen_kg ? station.prices.hydrogen_kg.toFixed(2) + ' €/kg' : 'No disp.' }}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- EV Charging Connectors -->
+      <div v-if="station.metadata?.connectors && station.metadata.connectors.length > 0" class="connectors-section">
+        <h4 class="section-heading">Puntos de recarga eléctrica</h4>
+        <div class="connectors-grid">
+          <div v-for="(conn, idx) in station.metadata.connectors" :key="idx" class="connector-badge">
+            <Zap :size="16" class="connector-icon" />
+            <div class="connector-details">
+              <span class="conn-standard">{{ conn.standard }}</span>
+              <span class="conn-power">{{ conn.powerKw }} kW &bull; {{ conn.count }} {{ conn.count === 1 ? 'punto' : 'puntos' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hydrogen Dispensers -->
+      <div v-if="station.metadata?.dispensers && station.metadata.dispensers.length > 0" class="connectors-section">
+        <h4 class="section-heading">Surtidores de Hidrógeno (H2)</h4>
+        <div class="connectors-grid">
+          <div v-for="(disp, idx) in station.metadata.dispensers" :key="idx" class="connector-badge">
+            <Fuel :size="16" class="connector-icon" />
+            <div class="connector-details">
+              <span class="conn-standard">Presión: {{ disp.pressureBar }} bar</span>
+              <span class="conn-power">{{ disp.status === 'available' ? 'Disponible' : 'Consultar' }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -734,6 +785,58 @@ watch(
           font-size: 0.85rem;
           font-weight: 500;
         }
+      }
+    }
+  }
+}
+
+.connectors-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .section-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .connectors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .connector-badge {
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .connector-icon {
+      color: #10b981;
+      flex-shrink: 0;
+    }
+
+    .connector-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .conn-standard {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .conn-power {
+        font-size: 0.75rem;
+        color: var(--text-muted);
       }
     }
   }

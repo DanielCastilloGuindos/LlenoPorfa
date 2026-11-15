@@ -44,6 +44,12 @@ self.addEventListener('activate', (event) => {
 // Fetch: smart network-first for API, cache-first / stale-while-revalidate for assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Never intercept or cache non-GET requests (POST, PUT, DELETE, etc.)
+  if (request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(request.url);
 
   // 1. API calls (/api/stations and /api/filters) -> NetworkFirst with offline cache fallback

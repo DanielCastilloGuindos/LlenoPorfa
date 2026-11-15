@@ -55,6 +55,9 @@ const fuelOptions: { id: FuelId; label: string }[] = [
   { id: 'g98_e5', label: 'Gasolina 98 E5' },
   { id: 'diesel_premium', label: 'Gasóleo Premium' },
   { id: 'glp', label: 'GLP' },
+  { id: 'gnc', label: 'GNC' },
+  { id: 'electric_kwh', label: 'Electricidad (kWh)' },
+  { id: 'hydrogen_kg', label: 'Hidrógeno (H2/kg)' },
 ];
 
 const radiusOptions = [2, 5, 10, 20, 35, 50];

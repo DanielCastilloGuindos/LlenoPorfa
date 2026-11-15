@@ -6,6 +6,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@common/*": ["../common/src/*"],
+      "@llenoporfa/common": ["../common/src/index.ts"]
+    }
   }
 }

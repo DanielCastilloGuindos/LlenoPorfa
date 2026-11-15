@@ -1,9 +1,21 @@
 {
   "name": "@llenoporfa/api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Vercel Rust serverless API for MITECO fuel station prices",
+  "description": "Clean Architecture API for LlenoPorfa (Gas, Electric & Hydrogen stations + Market analytics)",
   "scripts": {
-    "build": "cargo build --release"
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@llenoporfa/common": "workspace:*",
+    "fast-xml-parser": "^5.12.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "@types/node": "^26.6.6",
+    "typescript": "^5.8.0"
   }
 }

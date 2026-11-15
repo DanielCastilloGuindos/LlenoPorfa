@@ -208,12 +208,12 @@ export function useMarket() {
   };
 
   const crudePriceFormatted = computed(() => {
-    if (!marketData.value) return '---';
+    if (!marketData.value || typeof marketData.value.crude_eur_liter !== 'number') return '---';
     return marketData.value.crude_eur_liter.toFixed(2).replace('.', ',');
   });
 
   const delta7dFormatted = computed(() => {
-    if (!marketData.value) return '';
+    if (!marketData.value || typeof marketData.value.delta_7d_pct !== 'number') return '';
     const d = marketData.value.delta_7d_pct;
     const sign = d > 0 ? '+' : '';
     return `${sign}${d.toFixed(1).replace('.', ',')}%`;

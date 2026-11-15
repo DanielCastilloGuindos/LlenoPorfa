@@ -1,4 +1,12 @@
-export type FuelId = 'g95_e5' | 'diesel_a' | 'g98_e5' | 'diesel_premium' | 'glp';
+export type FuelId =
+  | 'g95_e5'
+  | 'diesel_a'
+  | 'g98_e5'
+  | 'diesel_premium'
+  | 'glp'
+  | 'gnc'
+  | 'electric_kwh'
+  | 'hydrogen_kg';
 
 export type SortMode = 'price' | 'distance' | 'smart';
 
@@ -10,11 +18,18 @@ export interface FuelPrices {
   diesel_a: number | null;
   diesel_premium: number | null;
   glp: number | null;
+  gnc?: number | null;
+  electric_kwh?: number | null;
+  hydrogen_kg?: number | null;
 }
 
 export interface Station {
   id: string;
+  external_id?: string;
+  type?: 'gas' | 'electric' | 'hydrogen';
+  name?: string;
   brand: string;
+  brand_or_operator?: string;
   address: string;
   municipality: string;
   province: string;
@@ -28,6 +43,19 @@ export interface Station {
   selected_fuel_price: number | null;
   price_tier: PriceTier | null;
   smart_score: number | null;
+  metadata?: {
+    connectors?: Array<{
+      standard: string;
+      powerKw: number;
+      count: number;
+      status?: string;
+    }>;
+    dispensers?: Array<{
+      pressureBar: number;
+      status?: string;
+    }>;
+    [key: string]: any;
+  };
 }
 
 export interface Coordinates {

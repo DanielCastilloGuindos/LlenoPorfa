@@ -17,6 +17,7 @@ apps/api/target/
 # Environment & Logs
 .env
 .env.*
+!.env.example
 *.log
 
 # OS & Editor
@@ -24,3 +25,9 @@ apps/api/target/
 Thumbs.db
 *.swp
 *.swo
+
+# Tooling
+.atl/
+data/
+*.db
+*.db-journal

@@ -25,6 +25,12 @@ const { registerPendingVisit } = useVisitDetector();
 const isFav = computed(() => isFavorite(props.station.id));
 const savings = computed(() => calculateTankSavings(props.station.selected_fuel_price));
 
+const priceUnit = computed(() => {
+  if (fuel.value === 'electric_kwh') return '€/kWh';
+  if (fuel.value === 'hydrogen_kg') return '€/kg';
+  return '€/L';
+});
+
 const tierClass = computed(() => {
   if (props.station.price_tier === 'low') return 'tier-low';
   if (props.station.price_tier === 'medium') return 'tier-medium';
@@ -81,7 +87,7 @@ const handleFavoriteClick = (e: Event) => {
           <span class="price-val">
             {{ station.selected_fuel_price ? station.selected_fuel_price.toFixed(3) : '---' }}
           </span>
-          <span class="price-unit">€/L</span>
+          <span class="price-unit">{{ priceUnit }}</span>
         </div>
 
         <div v-if="savings > 0.5" class="savings-tag">

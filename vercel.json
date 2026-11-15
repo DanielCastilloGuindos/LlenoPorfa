@@ -4,8 +4,8 @@
   "installCommand": "bun install",
   "builds": [
     {
-      "src": "apps/api/api/*.rs",
-      "use": "vercel-rust@4.0.9",
+      "src": "apps/api/api/*.ts",
+      "use": "@vercel/node",
       "config": {
         "maxDuration": 60,
         "memory": 1024
@@ -34,27 +34,69 @@
       }
     }
   ],
+  "crons": [
+    {
+      "path": "/api/sync?target=gas",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/sync?target=crude",
+      "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/sync?target=all",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "regions": ["cdg1"],
   "routes": [
     {
-      "src": "/api/stations",
-      "dest": "/apps/api/api/stations",
+      "src": "/api/stations/(.*)/history",
+      "dest": "/apps/api/api/stations.ts?stationId=$1",
       "headers": {
-        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300"
+        "Cache-Control": "public, s-maxage=600, stale-while-revalidate=120"
+      }
+    },
+    {
+      "src": "/api/stations",
+      "dest": "/apps/api/api/stations.ts",
+      "headers": {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60"
       }
     },
     {
       "src": "/api/filters",
-      "dest": "/apps/api/api/filters",
+      "dest": "/apps/api/api/filters.ts",
       "headers": {
-        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300"
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600"
+      }
+    },
+    {
+      "src": "/api/market/crude-history",
+      "dest": "/apps/api/api/market.ts?mode=crude-history",
+      "headers": {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600"
       }
     },
     {
       "src": "/api/market",
-      "dest": "/apps/api/api/market",
+      "dest": "/apps/api/api/market.ts",
       "headers": {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600"
+      }
+    },
+    {
+      "src": "/api/sync/(.*)",
+      "dest": "/apps/api/api/sync.ts?target=$1",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0"
+      }
+    },
+    {
+      "src": "/api/sync",
+      "dest": "/apps/api/api/sync.ts",
+      "headers": {
+        "Cache-Control": "no-store, max-age=0"
       }
     },
     {

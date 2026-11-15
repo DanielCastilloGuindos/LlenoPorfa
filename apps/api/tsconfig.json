@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "types": ["bun", "node"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@common/*": ["../common/src/*"],
+      "@llenoporfa/common": ["../common/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*", "api/**/*"]
+}

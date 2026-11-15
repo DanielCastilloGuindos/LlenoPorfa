@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, getCurrentInstance } from 'vue';
 import type { UserSettings, Vehicle } from '../types';
 
 const STORAGE_KEY = 'llenoporfa_settings_v1';
@@ -106,9 +106,13 @@ export function useSettings() {
     }
   };
 
-  onMounted(() => {
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      loadSettings();
+    });
+  } else {
     loadSettings();
-  });
+  }
 
   return {
     settings,

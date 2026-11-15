@@ -48,6 +48,9 @@ const filtersCatalog = ref<FiltersApiResponse>({
     { id: 'g98_e5', label: 'Gasolina 98 E5', short_label: 'SP 98' },
     { id: 'diesel_premium', label: 'Gasóleo Premium', short_label: 'Diésel+' },
     { id: 'glp', label: 'Gases licuados (GLP)', short_label: 'GLP' },
+    { id: 'gnc', label: 'Gas Natural (GNC)', short_label: 'GNC' },
+    { id: 'electric_kwh', label: 'Electricidad (kWh)', short_label: 'EV' },
+    { id: 'hydrogen_kg', label: 'Hidrógeno (H2/kg)', short_label: 'H2' },
   ],
   popular_brands: [
     'Repsol',
@@ -86,6 +89,16 @@ export function useStations() {
     }
   };
 
+  const normalizeStation = (s: any): Station => ({
+    ...s,
+    brand: s.brand || s.brandOrOperator || s.name || 'Estación',
+    selected_fuel_price: s.selected_fuel_price ?? s.selectedFuelPrice ?? null,
+    distance_km: s.distance_km ?? s.distanceKm ?? null,
+    price_tier: s.price_tier || s.priceTier || null,
+    is_open_24h: s.is_open_24h ?? s.isOpen24h ?? false,
+    postal_code: s.postal_code || s.postalCode || '',
+  });
+
   const saveStationsToOfflineStorage = (data: StationsApiResponse) => {
     if (typeof window === 'undefined') return;
     try {
@@ -99,7 +112,7 @@ export function useStations() {
       const raw = localStorage.getItem(LOCAL_STORAGE_STATIONS_BACKUP);
       if (raw) {
         const data: StationsApiResponse = JSON.parse(raw);
-        stations.value = data.stations || [];
+        stations.value = (data.stations || []).map(normalizeStation);
         stats.value = {
           minPrice: data.min_price,
           maxPrice: data.max_price,
@@ -146,7 +159,7 @@ export function useStations() {
       }
 
       const data: StationsApiResponse = await res.json();
-      stations.value = data.stations || [];
+      stations.value = (data.stations || []).map(normalizeStation);
       stats.value = {
         minPrice: data.min_price,
         maxPrice: data.max_price,
