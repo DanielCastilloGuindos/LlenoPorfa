@@ -198,11 +198,19 @@ const handleInstallPwa = async () => {
     </div>
 
     <!-- Native Background Radar Card -->
-    <div class="settings-card">
+    <div class="settings-card radar-card" :class="{ 'active-radar': settings.nativeBackgroundRadar }">
       <div class="card-header-between">
         <div class="card-header-icon">
-          <Radio :size="20" class="text-primary" />
-          <h3 class="card-title">Radar de Ahorro en Segundo Plano</h3>
+          <div class="icon-bubble" :class="{ active: settings.nativeBackgroundRadar }">
+            <Radio :size="18" />
+          </div>
+          <div>
+            <h3 class="card-title">Radar de Ahorro en Segundo Plano</h3>
+            <div class="radar-status-badge" :class="{ active: settings.nativeBackgroundRadar }">
+              <span class="status-dot"></span>
+              <span>{{ settings.nativeBackgroundRadar ? 'Activo' : 'Desactivado' }}</span>
+            </div>
+          </div>
         </div>
         <button
           class="radar-switch"
@@ -210,6 +218,7 @@ const handleInstallPwa = async () => {
           @click="toggleBackgroundRadar"
           role="switch"
           :aria-checked="!!settings.nativeBackgroundRadar"
+          :aria-label="settings.nativeBackgroundRadar ? 'Desactivar radar' : 'Activar radar'"
         >
           <span class="switch-handle"></span>
         </button>
@@ -1021,22 +1030,94 @@ const handleInstallPwa = async () => {
   }
 }
 
-.radar-switch {
-  width: 48px;
-  height: 26px;
-  background: var(--border-color);
-  border-radius: var(--radius-full);
-  position: relative;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  transition: background var(--transition-fast);
+.radar-card {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+  &.active-radar {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08);
+  }
+}
+
+.icon-bubble {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
 
   &.active {
-    background: var(--color-primary);
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.35);
+  }
+}
+
+.radar-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+  color: var(--text-muted);
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.25s ease;
+  }
+
+  &.active {
+    color: #10b981;
+
+    .status-dot {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    }
+  }
+}
+
+.radar-switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: 9999px;
+  background: var(--bg-surface-subtle);
+  border: 1.5px solid var(--border-color);
+  cursor: pointer;
+  padding: 2px;
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: rgba(16, 185, 129, 0.6);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.2);
 
     .switch-handle {
       transform: translateX(22px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6);
     }
   }
 
@@ -1046,8 +1127,8 @@ const handleInstallPwa = async () => {
     height: 22px;
     background: #ffffff;
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform var(--transition-fast);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.12);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
   }
 }
 

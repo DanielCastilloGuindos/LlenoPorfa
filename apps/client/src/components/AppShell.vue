@@ -171,6 +171,9 @@ watch(stations, () => {
 
 onMounted(async () => {
   handleUrlShortcuts();
+  // Fetch market data immediately without blocking geolocation or filters
+  fetchMarketData().catch(() => {});
+
   await fetchFilters();
 
   trackEvent('app_open', { province: locationState.name });
@@ -184,7 +187,9 @@ onMounted(async () => {
   } finally {
     await fetchStations();
     checkUrlStation();
-    fetchMarketData(stats.value.avgPrice ?? undefined);
+    const isDiesel = fuel.value === 'diesel_a' || fuel.value === 'diesel_premium';
+    const currentAvg = stats.value.avgPrice ?? undefined;
+    fetchMarketData(isDiesel ? undefined : currentAvg, isDiesel ? currentAvg : undefined).catch(() => {});
   }
 });
 </script>

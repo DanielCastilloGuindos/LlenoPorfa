@@ -15,7 +15,7 @@ import { useFavorites } from '../composables/useFavorites';
 import { useStations } from '../composables/useStations';
 import { useSettings } from '../composables/useSettings';
 import { useGeolocation } from '../composables/useGeolocation';
-import { useMarket } from '../composables/useMarket';
+import { useMarket, DEFAULT_MARKET_BASELINE } from '../composables/useMarket';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useTelemetry } from '../composables/useTelemetry';
 import { useHaptics } from '../composables/useHaptics';
@@ -58,13 +58,14 @@ const savings = computed(() =>
 
 // Contextual money breakdown for this station vs crude & official taxes
 const stationBreakdown = computed(() => {
-  if (!props.station || !props.station.selected_fuel_price || !marketData.value) {
+  if (!props.station || !props.station.selected_fuel_price) {
     return null;
   }
+  const mData = marketData.value || DEFAULT_MARKET_BASELINE;
   const pvp = props.station.selected_fuel_price;
   const isDiesel = fuel.value === 'diesel_a' || fuel.value === 'diesel_premium';
   const ieh = isDiesel ? 0.37900 : 0.47269;
-  const crudeCost = marketData.value.crude_eur_liter;
+  const crudeCost = mData.crude_eur_liter;
   const baseSinIva = pvp / 1.21;
   const iva = pvp - baseSinIva;
   const margin = Math.max(0, baseSinIva - ieh - crudeCost);
@@ -75,8 +76,8 @@ const stationBreakdown = computed(() => {
   const ivaPct = Math.round((iva / pvp) * 1000) / 10;
 
   const avgMargin = isDiesel
-    ? marketData.value.fuels.diesel_a.breakdown.refining_margin
-    : marketData.value.fuels.g95_e5.breakdown.refining_margin;
+    ? mData.fuels.diesel_a.breakdown.refining_margin
+    : mData.fuels.g95_e5.breakdown.refining_margin;
   const marginDiff = Math.round((margin - avgMargin) * 1000) / 1000;
 
   return {

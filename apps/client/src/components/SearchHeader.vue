@@ -67,14 +67,13 @@ const openSaveModal = () => {
 
       <!-- Crude Barometer Quick Indicator Pill -->
       <button
-        v-if="marketData"
         class="crude-pill"
         @click="openBarometer(); light()"
         title="Abrir Barómetro del Crudo e Impuestos"
         aria-label="Abrir Barómetro del Crudo e Impuestos"
       >
         <Cylinder :size="14" class="crude-icon" />
-        <span class="crude-text">Crudo: <strong>{{ crudePriceFormatted }}€</strong></span>
+        <span class="crude-text"><span class="crude-label-text">Crudo: </span><strong>{{ crudePriceFormatted }}€</strong></span>
         <span class="crude-trend" :class="marketData.trend">
           <TrendingUp v-if="marketData.trend === 'rising'" :size="11" />
           <TrendingDown v-else-if="marketData.trend === 'falling'" :size="11" />
@@ -270,9 +269,12 @@ const openSaveModal = () => {
     }
   }
 
-  @media (max-width: 420px) {
+  @media (max-width: 480px) {
     padding: 5px 8px;
-    .crude-text {
+    gap: 4px;
+    font-size: 0.72rem;
+
+    .crude-label-text {
       display: none;
     }
   }

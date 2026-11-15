@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type {
   FuelId,
   SortMode,
@@ -73,25 +73,6 @@ const filtersCatalog = ref<FiltersApiResponse>({
 export function useStations() {
   const { locationState } = useGeolocation();
   const { settings } = useSettings();
-
-  // Watch settings changes and apply them directly to search and map filters
-  watch(
-    () => [settings.value.defaultFuel, settings.value.defaultRadius] as const,
-    ([newFuel, newRadius]) => {
-      let changed = false;
-      if (newFuel && fuel.value !== newFuel) {
-        fuel.value = newFuel;
-        changed = true;
-      }
-      if (newRadius && radius.value !== newRadius) {
-        radius.value = newRadius;
-        changed = true;
-      }
-      if (changed) {
-        fetchStations();
-      }
-    }
-  );
 
   const fetchFilters = async () => {
     try {
