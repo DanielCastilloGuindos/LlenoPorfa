@@ -114,29 +114,32 @@ const handleOpen24hToggle = () => {
 
 <template>
   <div class="filter-bar" :class="{ 'only-fuels-mode': onlyFuels }">
-    <!-- Quick Fuel Selector Pills (Horizontal Scroll) -->
-    <div class="fuel-pills-scroll">
-      <button
-        v-for="f in filtersCatalog.fuels"
-        :key="f.id"
-        class="fuel-pill"
-        :class="{ active: fuel === f.id }"
-        @click="handleFuelChange(f.id)"
-      >
-        <span class="pill-short">{{ f.short_label }}</span>
-      </button>
+    <!-- Fuel Selector Container with Pinned Filter Button -->
+    <div class="fuel-selector-container">
+      <div class="fuel-pills-scroll" role="region" aria-label="Tipos de combustible">
+        <button
+          v-for="f in filtersCatalog.fuels"
+          :key="f.id"
+          class="fuel-pill"
+          :class="{ active: fuel === f.id }"
+          @click="handleFuelChange(f.id)"
+        >
+          <span class="pill-short">{{ f.short_label }}</span>
+        </button>
+      </div>
 
-      <!-- Expand secondary filters toggle button -->
-      <button
-        v-if="!onlyFuels"
-        class="toggle-filters-btn"
-        :class="{ active: expanded || brand !== 'all' || open24h }"
-        @click="expanded ? closeSheet() : openSheet()"
-        aria-label="Más filtros"
-      >
-        <SlidersHorizontal :size="16" />
-        <span class="filter-dot" v-if="brand !== 'all' || open24h"></span>
-      </button>
+      <!-- Expand secondary filters toggle button: ALWAYS PINNED ON THE RIGHT -->
+      <div v-if="!onlyFuels" class="pinned-filter-wrapper">
+        <button
+          class="toggle-filters-btn"
+          :class="{ active: expanded || brand !== 'all' || open24h }"
+          @click="expanded ? closeSheet() : openSheet()"
+          aria-label="Filtros avanzados"
+        >
+          <SlidersHorizontal :size="17" />
+          <span class="filter-dot" v-if="brand !== 'all' || open24h"></span>
+        </button>
+      </div>
     </div>
 
     <!-- Sticky Stats Bar: Siempre fijo mostrando Mínimo y Medio -->
@@ -252,8 +255,12 @@ const handleOpen24hToggle = () => {
     border-bottom: none;
     padding: 0;
 
-    .fuel-pills-scroll {
+    .fuel-selector-container {
       gap: 6px;
+    }
+
+    .fuel-pills-scroll {
+      gap: 8px;
       padding: 0;
     }
 
@@ -277,13 +284,24 @@ const handleOpen24hToggle = () => {
   }
 }
 
+.fuel-selector-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  gap: 8px;
+}
+
 .fuel-pills-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 2px 2px 4px 0;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
   &::-webkit-scrollbar {
     display: none;
@@ -291,20 +309,30 @@ const handleOpen24hToggle = () => {
 }
 
 .fuel-pill {
-  padding: 6px 14px;
+  flex-shrink: 0;
+  padding: 8px 16px;
   border-radius: var(--radius-full);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   white-space: nowrap;
-  min-height: 36px;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 
   &:hover {
     border-color: var(--border-focus);
     color: var(--text-main);
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 
   &.active {
@@ -315,24 +343,39 @@ const handleOpen24hToggle = () => {
   }
 }
 
-.toggle-filters-btn {
-  margin-left: auto;
+.pinned-filter-wrapper {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-surface);
   position: relative;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  z-index: 2;
+}
+
+.toggle-filters-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   @include flex-center;
   flex-shrink: 0;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
 
   &:hover {
     color: var(--text-main);
     border-color: var(--border-focus);
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 
   &.active {
@@ -343,8 +386,8 @@ const handleOpen24hToggle = () => {
 
   .filter-dot {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 7px;
+    right: 7px;
     width: 6px;
     height: 6px;
     border-radius: 50%;

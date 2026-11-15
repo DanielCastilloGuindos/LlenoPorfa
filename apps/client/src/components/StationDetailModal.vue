@@ -62,10 +62,37 @@ const stationBreakdown = computed(() => {
   if (!props.station || !props.station.selected_fuel_price) {
     return null;
   }
+  // Exclude non-petroleum fuels (electricity and hydrogen have no relation to Brent crude oil)
+  if (fuel.value === 'electric_kwh' || fuel.value === 'hydrogen_kg') {
+    return null;
+  }
   const mData = marketData.value || DEFAULT_MARKET_BASELINE;
   const pvp = props.station.selected_fuel_price;
-  const isDiesel = fuel.value === 'diesel_a' || fuel.value === 'diesel_premium';
-  const ieh = isDiesel ? 0.37900 : 0.47269;
+
+  // Taxes and fuel mapping in Spain
+  let ieh = 0.47269;
+  let fuelName = 'Gasolina 95 E5';
+  let isDiesel = false;
+
+  if (fuel.value === 'diesel_a') {
+    ieh = 0.37900;
+    fuelName = 'Gasóleo A';
+    isDiesel = true;
+  } else if (fuel.value === 'diesel_premium') {
+    ieh = 0.37900;
+    fuelName = 'Gasóleo Premium';
+    isDiesel = true;
+  } else if (fuel.value === 'g98_e5') {
+    ieh = 0.47269;
+    fuelName = 'Gasolina 98 E5';
+  } else if (fuel.value === 'glp') {
+    ieh = 0.03100;
+    fuelName = 'GLP';
+  } else if (fuel.value === 'gnc') {
+    ieh = 0.04100;
+    fuelName = 'GNC';
+  }
+
   const crudeCost = mData.crude_eur_liter;
   const baseSinIva = pvp / 1.21;
   const iva = pvp - baseSinIva;
@@ -77,8 +104,8 @@ const stationBreakdown = computed(() => {
   const ivaPct = Math.round((iva / pvp) * 1000) / 10;
 
   const avgMargin = isDiesel
-    ? mData.fuels.diesel_a.breakdown.refining_margin
-    : mData.fuels.g95_e5.breakdown.refining_margin;
+    ? (mData.fuels?.diesel_a?.breakdown?.refining_margin ?? 0.398)
+    : (mData.fuels?.g95_e5?.breakdown?.refining_margin ?? 0.395);
   const marginDiff = Math.round((margin - avgMargin) * 1000) / 1000;
 
   return {
@@ -92,7 +119,7 @@ const stationBreakdown = computed(() => {
     iehPct,
     iva,
     ivaPct,
-    fuelName: isDiesel ? 'Gasóleo A' : 'Gasolina 95 E5',
+    fuelName,
   };
 });
 
