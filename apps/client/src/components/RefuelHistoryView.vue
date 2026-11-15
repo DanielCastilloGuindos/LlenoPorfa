@@ -20,6 +20,8 @@ import {
   Download,
   Printer,
   Heart,
+  Camera,
+  Eye,
 } from 'lucide-vue-next';
 import type { RefuelLog, FuelId, Station } from '../types';
 import { useRefuelLogs } from '../composables/useRefuelLogs';
@@ -85,7 +87,72 @@ const fuelOptions: { id: FuelId; label: string }[] = [
   { id: 'g98_e5', label: 'Gasolina 98 E5' },
   { id: 'diesel_premium', label: 'Gasóleo Premium' },
   { id: 'glp', label: 'GLP' },
+  { id: 'gnc', label: 'GNC' },
+  { id: 'electric_kwh', label: 'Electricidad (kWh)' },
+  { id: 'hydrogen_kg', label: 'Hidrógeno (H2/kg)' },
 ];
+
+const priceUnitLabel = computed(() => {
+  if (fuelType.value === 'electric_kwh') return '€/kWh';
+  if (fuelType.value === 'hydrogen_kg') return '€/kg';
+  return '€/L';
+});
+
+const quantityUnitLabel = computed(() => {
+  if (fuelType.value === 'electric_kwh') return 'kWh';
+  if (fuelType.value === 'hydrogen_kg') return 'kg';
+  return 'Litros (L)';
+});
+
+// Optional Receipt / Ticket Image
+const receiptImage = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const previewModalImage = ref<string | null>(null);
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const handleReceiptFile = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (loadEvent) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const maxDim = 1000;
+      let width = img.width;
+      let height = img.height;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        receiptImage.value = canvas.toDataURL('image/jpeg', 0.75);
+      }
+    };
+    img.src = loadEvent.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+  target.value = '';
+};
+
+const removeReceiptImage = () => {
+  receiptImage.value = null;
+};
 
 // Helper to get current ISO date formatted for datetime-local input
 const getNowDateTimeLocal = (): string => {
@@ -291,6 +358,7 @@ const openNewRefuelForm = () => {
   totalAmount.value = '';
   odometerKm.value = '';
   notes.value = '';
+  receiptImage.value = null;
 
   // Apply prefill if set
   if (activePrefill.value) {
@@ -327,6 +395,7 @@ const openEditRefuelForm = (item: RefuelLog) => {
   totalAmount.value = item.totalAmount;
   odometerKm.value = item.odometerKm ?? '';
   notes.value = item.notes ?? '';
+  receiptImage.value = item.receiptImage ?? null;
   isFormOpen.value = true;
 };
 
@@ -361,6 +430,7 @@ const handleSave = () => {
     vehicleId: chosenVeh?.id,
     vehicleAlias: chosenVeh?.alias,
     vehiclePlate: chosenVeh?.plate,
+    receiptImage: receiptImage.value || undefined,
   };
 
   if (editingLogId.value) {
@@ -523,187 +593,237 @@ onMounted(() => {
     <!-- New / Edit Form Modal -->
     <Teleport to="body">
       <div v-if="isFormOpen" class="modal-backdrop" @click.self="isFormOpen = false">
-        <div class="form-modal-card">
+        <div class="detail-sheet form-sheet">
           <!-- Mobile Drag Handle -->
           <div class="bottom-sheet-handle"></div>
 
-          <div class="modal-header">
-            <div class="title-wrap">
-              <ReceiptText :size="20" class="text-primary" />
-              <h3>{{ editingLogId ? 'Editar Repostaje' : 'Registrar Nuevo Repostaje' }}</h3>
+          <!-- Pinned Header matching StationDetailModal -->
+          <div class="sheet-header">
+            <div class="header-main">
+              <div class="brand-row">
+                <ReceiptText :size="18" class="text-primary" />
+                <h3 class="sheet-title">{{ editingLogId ? 'Editar Repostaje' : 'Registrar Nuevo Repostaje' }}</h3>
+              </div>
+              <p class="sheet-subtitle">Introduce los datos del repostaje para controlar gastos y medias.</p>
             </div>
-            <button class="close-btn" @click="isFormOpen = false">
-              <X :size="18" />
-            </button>
+            <div class="header-actions">
+              <button class="action-btn close-btn" @click="isFormOpen = false" aria-label="Cerrar">
+                <X :size="18" />
+              </button>
+            </div>
           </div>
 
-          <form @submit.prevent="handleSave" class="refuel-form">
-            <!-- Quick station picker -->
-            <div v-if="quickStations.length > 0 && !editingLogId" class="quick-picker-box">
-              <label class="field-label">Surtidor rápido (cercanas / favoritas):</label>
-              <div class="quick-chips">
-                <button
-                  type="button"
-                  v-for="st in quickStations.slice(0, 5)"
-                  :key="st.id"
-                  class="quick-chip"
-                  :class="{ active: stationId === st.id }"
-                  @click="selectQuickStation(st)"
-                >
-                  <span>{{ st.brand }}</span>
-                  <small v-if="st.selected_fuel_price" class="tabular-nums">{{ st.selected_fuel_price.toFixed(3) }}€</small>
+          <!-- Scrollable Sheet Content -->
+          <div class="sheet-content">
+            <form @submit.prevent="handleSave" class="refuel-form">
+              <!-- Quick station picker -->
+              <div v-if="quickStations.length > 0 && !editingLogId" class="quick-picker-box">
+                <label class="field-label">Surtidor rápido (cercanas / favoritas):</label>
+                <div class="quick-chips">
+                  <button
+                    type="button"
+                    v-for="st in quickStations.slice(0, 5)"
+                    :key="st.id"
+                    class="quick-chip"
+                    :class="{ active: stationId === st.id }"
+                    @click="selectQuickStation(st)"
+                  >
+                    <span>{{ st.brand }}</span>
+                    <small v-if="st.selected_fuel_price" class="tabular-nums">{{ st.selected_fuel_price.toFixed(3) }}€</small>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Vehicle Selector from Mis Vehículos in Ajustes -->
+              <div class="form-group">
+                <label class="field-label">Vehículo asignado (opcional)</label>
+                <div v-if="vehicles.length > 0" class="input-icon-wrap">
+                  <Car :size="16" class="field-icon" />
+                  <select v-model="selectedVehicleId" class="form-select">
+                    <option value="">(Sin vehículo asignado)</option>
+                    <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                      {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
+                    </option>
+                  </select>
+                </div>
+                <div v-else class="vehicle-empty-notice">
+                  <Car :size="15" class="text-muted" />
+                  <span>Sin vehículos registrados. Puedes añadirlos en <strong>Ajustes > Mis Vehículos</strong>.</span>
+                </div>
+              </div>
+
+              <!-- Station Name -->
+              <div class="form-group">
+                <label class="field-label">Gasolinera (Nombre o Rótulo)*</label>
+                <div class="input-icon-wrap">
+                  <MapPin :size="16" class="field-icon" />
+                  <input
+                    v-model="stationName"
+                    type="text"
+                    required
+                    placeholder="Ej. Repsol Gran Vía, Plenoil..."
+                    class="form-input"
+                  />
+                </div>
+              </div>
+
+              <!-- Date & Time & Fuel Type -->
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label class="field-label">Fecha y Hora*</label>
+                  <input v-model="date" type="datetime-local" required class="form-input" />
+                </div>
+
+                <div class="form-group flex-1">
+                  <label class="field-label">Carburante*</label>
+                  <select v-model="fuelType" class="form-select">
+                    <option v-for="f in fuelOptions" :key="f.id" :value="f.id">
+                      {{ f.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Price, Liters & Total (Auto-calculated!) -->
+              <div class="calc-box">
+                <div class="calc-header">
+                  <span>Cálculo automático: completa 2 campos para calcular automáticamente el tercero</span>
+                </div>
+
+                <div class="calc-grid">
+                  <div class="form-group">
+                    <label class="field-label">Precio ({{ priceUnitLabel }})*</label>
+                    <input
+                      v-model.number="pricePerLiter"
+                      type="number"
+                      step="0.001"
+                      min="0.01"
+                      required
+                      placeholder="1.629"
+                      class="form-input font-mono tabular-nums"
+                      :class="{ 'is-calculated': calculatedField === 'price' }"
+                      @input="onPriceInput"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="field-label">Cantidad ({{ quantityUnitLabel }})*</label>
+                    <input
+                      v-model.number="liters"
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      required
+                      placeholder="45.5"
+                      class="form-input font-mono tabular-nums"
+                      :class="{ 'is-calculated': calculatedField === 'liters' }"
+                      @input="onLitersInput"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="field-label">Importe Total (€)*</label>
+                    <input
+                      v-model.number="totalAmount"
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      required
+                      placeholder="74.12"
+                      class="form-input font-mono tabular-nums total-input"
+                      :class="{ 'is-calculated': calculatedField === 'total' }"
+                      @input="onTotalInput"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Odometer & Notes -->
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label class="field-label">Kilometraje actual (km)</label>
+                  <div class="input-icon-wrap">
+                    <Gauge :size="16" class="field-icon" />
+                    <input
+                      v-model.number="odometerKm"
+                      type="number"
+                      step="1"
+                      placeholder="Ej. 124500"
+                      class="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group flex-1">
+                  <label class="field-label">Notas breves</label>
+                  <div class="input-icon-wrap">
+                    <FileText :size="16" class="field-icon" />
+                    <input
+                      v-model="notes"
+                      type="text"
+                      placeholder="Ej. Depósito lleno antes de viaje"
+                      class="form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ticket / Receipt Image (Optional) -->
+              <div class="form-group">
+                <label class="field-label">Imagen del ticket (opcional)</label>
+                <div class="receipt-upload-container">
+                  <input
+                    ref="fileInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden-file-input"
+                    @change="handleReceiptFile"
+                  />
+
+                  <div v-if="!receiptImage" class="receipt-dropzone" @click="triggerFileInput">
+                    <Camera :size="20" class="dropzone-icon" />
+                    <span class="dropzone-text">Hacer foto o subir imagen del ticket</span>
+                    <span class="dropzone-hint">JPG, PNG hasta 5MB (se optimizará automáticamente)</span>
+                  </div>
+
+                  <div v-else class="receipt-preview-card">
+                    <div class="preview-img-box" @click="previewModalImage = receiptImage">
+                      <img :src="receiptImage" alt="Ticket" class="preview-thumb" />
+                      <div class="preview-overlay">
+                        <Eye :size="16" />
+                      </div>
+                    </div>
+                    <div class="preview-info">
+                      <span class="info-title">Ticket adjunto</span>
+                      <span class="info-sub">Guardado localmente con el repostaje</span>
+                    </div>
+                    <div class="preview-actions">
+                      <button type="button" class="action-mini-btn" @click="triggerFileInput" title="Cambiar foto">
+                        <Camera :size="14" />
+                      </button>
+                      <button type="button" class="action-mini-btn danger" @click="removeReceiptImage" title="Quitar ticket">
+                        <Trash2 :size="14" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" @click="isFormOpen = false">
+                  Cancelar
+                </button>
+                <button type="submit" class="btn-primary">
+                  <Check :size="18" />
+                  <span>{{ editingLogId ? 'Actualizar' : 'Guardar Repostaje' }}</span>
                 </button>
               </div>
-            </div>
-
-            <!-- Vehicle Selector from Mis Vehículos in Ajustes -->
-            <div class="form-group">
-              <label class="field-label">Vehículo asignado (opcional)</label>
-              <div v-if="vehicles.length > 0" class="input-icon-wrap">
-                <Car :size="16" class="field-icon" />
-                <select v-model="selectedVehicleId" class="form-select">
-                  <option value="">(Sin vehículo asignado)</option>
-                  <option v-for="v in vehicles" :key="v.id" :value="v.id">
-                    {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
-                  </option>
-                </select>
-              </div>
-              <div v-else class="vehicle-empty-notice">
-                <Car :size="15" class="text-muted" />
-                <span>Sin vehículos registrados. Puedes añadirlos en <strong>Ajustes > Mis Vehículos</strong>.</span>
-              </div>
-            </div>
-
-          <!-- Station Name -->
-          <div class="form-group">
-            <label class="field-label">Gasolinera (Nombre o Rótulo)*</label>
-            <div class="input-icon-wrap">
-              <MapPin :size="16" class="field-icon" />
-              <input
-                v-model="stationName"
-                type="text"
-                required
-                placeholder="Ej. Repsol Gran Vía, Plenoil..."
-                class="form-input"
-              />
-            </div>
+            </form>
           </div>
-
-          <!-- Date & Time & Fuel Type -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="field-label">Fecha y Hora*</label>
-              <input v-model="date" type="datetime-local" required class="form-input" />
-            </div>
-
-            <div class="form-group flex-1">
-              <label class="field-label">Carburante*</label>
-              <select v-model="fuelType" class="form-select">
-                <option v-for="f in fuelOptions" :key="f.id" :value="f.id">
-                  {{ f.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Price, Liters & Total (Auto-calculated!) -->
-          <div class="calc-box">
-            <div class="calc-header">
-              <span>Cálculo automático: completa 2 campos para calcular automáticamente el tercero</span>
-            </div>
-
-            <div class="calc-grid">
-              <div class="form-group">
-                <label class="field-label">Precio (€/L)*</label>
-                <input
-                  v-model.number="pricePerLiter"
-                  type="number"
-                  step="0.001"
-                  min="0.1"
-                  required
-                  placeholder="1.629"
-                  class="form-input font-mono tabular-nums"
-                  :class="{ 'is-calculated': calculatedField === 'price' }"
-                  @input="onPriceInput"
-                />
-              </div>
-
-              <div class="form-group">
-                <label class="field-label">Litros (L)*</label>
-                <input
-                  v-model.number="liters"
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  required
-                  placeholder="45.5"
-                  class="form-input font-mono tabular-nums"
-                  :class="{ 'is-calculated': calculatedField === 'liters' }"
-                  @input="onLitersInput"
-                />
-              </div>
-
-              <div class="form-group">
-                <label class="field-label">Importe Total (€)*</label>
-                <input
-                  v-model.number="totalAmount"
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  required
-                  placeholder="74.12"
-                  class="form-input font-mono tabular-nums total-input"
-                  :class="{ 'is-calculated': calculatedField === 'total' }"
-                  @input="onTotalInput"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Odometer & Notes -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="field-label">Kilometraje actual (km)</label>
-              <div class="input-icon-wrap">
-                <Gauge :size="16" class="field-icon" />
-                <input
-                  v-model.number="odometerKm"
-                  type="number"
-                  step="1"
-                  placeholder="Ej. 124500"
-                  class="form-input"
-                />
-              </div>
-            </div>
-
-            <div class="form-group flex-1">
-              <label class="field-label">Notas breves</label>
-              <div class="input-icon-wrap">
-                <FileText :size="16" class="field-icon" />
-                <input
-                  v-model="notes"
-                  type="text"
-                  placeholder="Ej. Depósito lleno antes de viaje"
-                  class="form-input"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="form-actions">
-            <button type="button" class="btn-secondary" @click="isFormOpen = false">
-              Cancelar
-            </button>
-            <button type="submit" class="btn-primary">
-              <Check :size="18" />
-              <span>{{ editingLogId ? 'Actualizar' : 'Guardar Repostaje' }}</span>
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
-  </Teleport>
+    </Teleport>
 
   <!-- Empty State -->
     <div v-if="filteredLogs.length === 0" class="empty-state">
@@ -739,6 +859,16 @@ onMounted(() => {
               <span>Ahorro: ~{{ item.savingsEur.toFixed(2) }} €</span>
             </span>
             <span v-if="item.odometerKm" class="pill-km tabular-nums">{{ item.odometerKm.toLocaleString() }} km</span>
+            <button
+              v-if="item.receiptImage"
+              type="button"
+              class="pill-ticket"
+              @click.stop="previewModalImage = item.receiptImage"
+              title="Ver imagen del ticket"
+            >
+              <Camera :size="11" />
+              <span>Ticket</span>
+            </button>
           </div>
 
           <p v-if="item.notes" class="card-notes">"{{ item.notes }}"</p>
@@ -786,6 +916,27 @@ onMounted(() => {
             <button class="support-btn-secondary" @click="showSupportModal = false">
               Ahora no
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Fullscreen Ticket Image Preview Modal -->
+    <Teleport to="body">
+      <div
+        v-if="previewModalImage"
+        class="modal-backdrop image-preview-backdrop"
+        @click="previewModalImage = null"
+      >
+        <div class="image-preview-dialog" @click.stop>
+          <div class="image-preview-header">
+            <span class="preview-title">Ticket de repostaje</span>
+            <button class="action-btn close-btn" @click="previewModalImage = null" aria-label="Cerrar">
+              <X :size="18" />
+            </button>
+          </div>
+          <div class="image-preview-body">
+            <img :src="previewModalImage" alt="Ticket" class="full-ticket-img" />
           </div>
         </div>
       </div>
@@ -1138,66 +1289,124 @@ onMounted(() => {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 250;
-  @include flex-center;
-  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 
-  @include mobile {
-    align-items: flex-end;
-    padding: 0;
+  @include desktop {
+    align-items: center;
+    padding: 24px;
   }
 }
 
-.form-modal-card {
+.detail-sheet.form-sheet {
   background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
+  max-width: 640px;
+  max-height: 92dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @include desktop {
+    border-radius: var(--radius-xl);
+    max-height: 88dvh;
+  }
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(161, 161, 170, 0.4);
+  border-radius: 9999px;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+  display: block;
+
+  @include desktop {
+    display: none;
+  }
+}
+
+.sheet-header {
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--border-color);
+  @include flex-between;
+  align-items: center;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+  z-index: 10;
+  gap: 12px;
+
+  .header-main {
+    flex: 1;
+    min-width: 0;
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .text-primary {
+        color: var(--color-primary);
+      }
+
+      .sheet-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+      }
+    }
+
+    .sheet-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      @include truncate;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .action-btn {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      @include flex-center;
+      cursor: pointer;
+      transition: color var(--transition-fast), background-color var(--transition-fast);
+
+      &:hover {
+        color: var(--text-main);
+        background: var(--border-color);
+      }
+    }
+  }
+}
+
+.sheet-content {
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-
-  @include mobile {
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    max-height: 85dvh;
-    padding: 10px 20px calc(24px + var(--safe-bottom));
-  }
-}
-
-.modal-header {
-  @include flex-between;
-
-  .title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .text-primary {
-      color: var(--color-primary);
-    }
-
-    h3 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-  }
-
-  .close-btn {
-    color: var(--text-muted);
-    padding: 4px;
-    &:hover {
-      color: var(--text-main);
-    }
-  }
+  -webkit-overflow-scrolling: touch;
 }
 
 .refuel-form {
@@ -1415,6 +1624,218 @@ onMounted(() => {
 
     &:hover {
       opacity: 0.9;
+    }
+  }
+}
+
+.receipt-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .hidden-file-input {
+    display: none;
+  }
+
+  .receipt-dropzone {
+    border: 1.5px dashed var(--border-color);
+    background: var(--bg-surface-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+
+    &:hover {
+      border-color: var(--border-focus);
+      background: var(--bg-input);
+    }
+
+    .dropzone-icon {
+      color: var(--text-muted);
+    }
+
+    .dropzone-text {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .dropzone-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+  }
+
+  .receipt-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+
+    .preview-img-box {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      cursor: pointer;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+
+      .preview-thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .preview-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        color: #ffffff;
+        @include flex-center;
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+      }
+
+      &:hover .preview-overlay {
+        opacity: 1;
+      }
+    }
+
+    .preview-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .info-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .info-sub {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+    }
+
+    .preview-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .action-mini-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-md);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        @include flex-center;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+          color: var(--text-main);
+          border-color: var(--border-focus);
+        }
+
+        &.danger:hover {
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.4);
+          background: rgba(239, 68, 68, 0.1);
+        }
+      }
+    }
+  }
+}
+
+.pill-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-color);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: var(--text-main);
+    border-color: var(--border-focus);
+  }
+}
+
+.image-preview-backdrop {
+  z-index: 1000;
+}
+
+.image-preview-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  .image-preview-header {
+    @include flex-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+
+    .preview-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      @include flex-center;
+      cursor: pointer;
+      &:hover {
+        color: var(--text-main);
+      }
+    }
+  }
+
+  .image-preview-body {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 80vh;
+    overflow: auto;
+
+    .full-ticket-img {
+      max-width: 100%;
+      max-height: 75vh;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
     }
   }
 }

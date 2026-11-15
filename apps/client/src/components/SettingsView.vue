@@ -433,76 +433,91 @@ const handleInstallPwa = async () => {
     <!-- Vehicle Modal -->
     <Teleport to="body">
       <div v-if="isVehicleModalOpen" class="modal-backdrop" @click.self="isVehicleModalOpen = false">
-        <div class="vehicle-modal-card">
-          <div class="modal-header">
-            <h3>{{ editingVehicleId ? 'Editar Vehículo' : 'Añadir Nuevo Vehículo' }}</h3>
-            <button class="close-btn" @click="isVehicleModalOpen = false">
-              <X :size="18" />
-            </button>
-          </div>
+        <div class="detail-sheet vehicle-sheet">
+          <!-- Mobile Drag Handle -->
+          <div class="bottom-sheet-handle"></div>
 
-          <form @submit.prevent="handleSaveVehicle" class="vehicle-form">
-            <div class="form-group">
-              <label class="field-label">Nombre / Alias del vehículo*</label>
-              <input
-                ref="aliasInputRef"
-                v-model="vehicleAlias"
-                type="text"
-                required
-                placeholder="Ej. Coche familiar, Furgoneta reparto..."
-                class="form-input"
-              />
-            </div>
-
-            <div class="form-row">
-              <div class="form-group flex-1">
-                <label class="field-label">Marca</label>
-                <input v-model="vehicleBrand" type="text" placeholder="Ej. Toyota" class="form-input" />
+          <!-- Pinned Header matching StationDetailModal -->
+          <div class="sheet-header">
+            <div class="header-main">
+              <div class="brand-row">
+                <Car :size="18" class="text-primary" />
+                <h3 class="sheet-title">{{ editingVehicleId ? 'Editar Vehículo' : 'Añadir Nuevo Vehículo' }}</h3>
               </div>
-              <div class="form-group flex-1">
-                <label class="field-label">Modelo</label>
-                <input v-model="vehicleModel" type="text" placeholder="Ej. Yaris Cross" class="form-input" />
-              </div>
+              <p class="sheet-subtitle">Configura los datos del vehículo para vincular consumos y repostajes.</p>
             </div>
-
-            <div class="form-row">
-              <div class="form-group flex-1">
-                <label class="field-label">Matrícula*</label>
-                <input
-                  v-model="vehiclePlate"
-                  type="text"
-                  required
-                  placeholder="1234 ABC"
-                  class="form-input font-mono uppercase"
-                />
-              </div>
-              <div class="form-group flex-1">
-                <label class="field-label">Capacidad Depósito (L)</label>
-                <input
-                  v-model.number="vehicleTankCapacity"
-                  type="number"
-                  min="10"
-                  max="250"
-                  class="form-input font-mono"
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="field-label">Combustible habitual</label>
-              <select v-model="vehicleFuelType" class="form-select">
-                <option v-for="f in fuelOptions" :key="f.id" :value="f.id">{{ f.label }}</option>
-              </select>
-            </div>
-
-            <div class="modal-actions">
-              <button type="button" class="btn-secondary" @click="isVehicleModalOpen = false">Cancelar</button>
-              <button type="submit" class="btn-primary">
-                <Check :size="16" />
-                <span>Guardar</span>
+            <div class="header-actions">
+              <button class="action-btn close-btn" @click="isVehicleModalOpen = false" aria-label="Cerrar">
+                <X :size="18" />
               </button>
             </div>
-          </form>
+          </div>
+
+          <!-- Scrollable Sheet Content -->
+          <div class="sheet-content">
+            <form @submit.prevent="handleSaveVehicle" class="vehicle-form">
+              <div class="form-group">
+                <label class="field-label">Nombre / Alias del vehículo*</label>
+                <input
+                  ref="aliasInputRef"
+                  v-model="vehicleAlias"
+                  type="text"
+                  required
+                  placeholder="Ej. Coche familiar, Furgoneta reparto..."
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label class="field-label">Marca</label>
+                  <input v-model="vehicleBrand" type="text" placeholder="Ej. Toyota" class="form-input" />
+                </div>
+                <div class="form-group flex-1">
+                  <label class="field-label">Modelo</label>
+                  <input v-model="vehicleModel" type="text" placeholder="Ej. Yaris Cross" class="form-input" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label class="field-label">Matrícula*</label>
+                  <input
+                    v-model="vehiclePlate"
+                    type="text"
+                    required
+                    placeholder="1234 ABC"
+                    class="form-input font-mono uppercase"
+                  />
+                </div>
+                <div class="form-group flex-1">
+                  <label class="field-label">Capacidad Depósito (L)</label>
+                  <input
+                    v-model.number="vehicleTankCapacity"
+                    type="number"
+                    min="10"
+                    max="250"
+                    class="form-input font-mono"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="field-label">Combustible habitual</label>
+                <select v-model="vehicleFuelType" class="form-select">
+                  <option v-for="f in fuelOptions" :key="f.id" :value="f.id">{{ f.label }}</option>
+                </select>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" @click="isVehicleModalOpen = false">Cancelar</button>
+                <button type="submit" class="btn-primary">
+                  <Check :size="16" />
+                  <span>Guardar</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -962,81 +977,166 @@ const handleInstallPwa = async () => {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  @include flex-center;
-  padding: 16px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  @include desktop {
+    align-items: center;
+    padding: 24px;
+  }
 }
 
-.vehicle-modal-card {
+.detail-sheet.vehicle-sheet {
   background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 460px;
-  padding: 22px;
+  max-width: 560px;
+  max-height: 92dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @include desktop {
+    border-radius: var(--radius-xl);
+    max-height: 88dvh;
+  }
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(161, 161, 170, 0.4);
+  border-radius: 9999px;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+  display: block;
+
+  @include desktop {
+    display: none;
+  }
+}
+
+.sheet-header {
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--border-color);
+  @include flex-between;
+  align-items: center;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+  z-index: 10;
+  gap: 12px;
+
+  .header-main {
+    flex: 1;
+    min-width: 0;
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .text-primary {
+        color: var(--color-primary);
+      }
+
+      .sheet-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+      }
+    }
+
+    .sheet-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      @include truncate;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .action-btn {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      @include flex-center;
+      cursor: pointer;
+      transition: color var(--transition-fast), background-color var(--transition-fast);
+
+      &:hover {
+        color: var(--text-main);
+        background: var(--border-color);
+      }
+    }
+  }
+}
+
+.sheet-content {
+  overflow-y: auto;
+  padding: 16px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  -webkit-overflow-scrolling: touch;
+}
 
-  .modal-header {
-    @include flex-between;
+.vehicle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
-    h3 {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 
-    .close-btn {
-      color: var(--text-muted);
-      padding: 4px;
+  .btn-secondary {
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    transition: background-color var(--transition-fast);
 
-      &:hover {
-        color: var(--text-main);
-      }
+    &:hover {
+      background: var(--border-color);
     }
   }
 
-  .vehicle-form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: var(--btn-cta-bg);
+    color: var(--btn-cta-text);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: opacity var(--transition-fast);
 
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 8px;
-
-    .btn-secondary {
-      padding: 8px 14px;
-      border-radius: var(--radius-md);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.825rem;
-
-      &:hover {
-        color: var(--text-main);
-      }
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      background: var(--color-primary);
-      color: #ffffff;
-      border-radius: var(--radius-md);
-      font-size: 0.85rem;
-      font-weight: 700;
-
-      &:hover {
-        background: var(--color-primary-dark);
-      }
+    &:hover {
+      opacity: 0.9;
     }
   }
 }

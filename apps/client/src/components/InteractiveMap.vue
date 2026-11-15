@@ -265,7 +265,6 @@ const renderStationMarkers = () => {
         className: 'airbnb-pin-wrapper',
         html: `
           <div class="airbnb-price-pin pin-${tier} ${isSelected || isHovered ? 'pin-selected' : ''}">
-            <span class="price-dot"></span>
             <span class="price-val tabular-nums">${priceStr} €</span>
           </div>
         `,

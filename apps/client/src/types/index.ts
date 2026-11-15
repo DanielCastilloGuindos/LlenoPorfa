@@ -114,6 +114,7 @@ export interface RefuelLog {
   vehicleId?: string;
   vehicleAlias?: string;
   vehiclePlate?: string;
+  receiptImage?: string;
   createdAt: number;
 }
 

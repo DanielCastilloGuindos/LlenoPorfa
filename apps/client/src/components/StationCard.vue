@@ -72,6 +72,15 @@ const handleFavoriteClick = (e: Event) => {
 
       <!-- Price & Savings -->
       <div class="price-container">
+        <button
+          class="fav-btn"
+          :class="{ active: isFav }"
+          @click="handleFavoriteClick"
+          :aria-label="isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'"
+        >
+          <Heart :size="18" :fill="isFav ? 'currentColor' : 'none'" />
+        </button>
+
         <div class="price-badge tabular-nums">
           <span class="price-val">
             {{ station.selected_fuel_price ? station.selected_fuel_price.toFixed(3) : '---' }}
@@ -98,15 +107,6 @@ const handleFavoriteClick = (e: Event) => {
       </div>
 
       <div class="card-actions" @click.stop>
-        <button
-          class="fav-btn"
-          :class="{ active: isFav }"
-          @click="handleFavoriteClick"
-          :aria-label="isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'"
-        >
-          <Heart :size="16" :fill="isFav ? 'currentColor' : 'none'" />
-        </button>
-
         <div class="gps-direct-logos">
           <a
             :href="googleMapsUrl"
@@ -199,8 +199,31 @@ const handleFavoriteClick = (e: Event) => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
   flex-shrink: 0;
+
+  .fav-btn {
+    color: var(--text-muted);
+    padding: 3px;
+    margin-right: -3px;
+    margin-bottom: 1px;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast), transform var(--transition-fast);
+
+    &:hover {
+      color: #ef4444;
+      transform: scale(1.15);
+    }
+
+    &.active {
+      color: #ef4444;
+    }
+  }
 
   .price-badge {
     display: flex;
@@ -283,23 +306,6 @@ const handleFavoriteClick = (e: Event) => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-
-  .fav-btn {
-    color: var(--text-muted);
-    padding: 6px;
-    min-width: 32px;
-    min-height: 32px;
-    border-radius: var(--radius-full);
-    transition: color var(--transition-fast);
-
-    &:hover {
-      color: #ef4444;
-    }
-
-    &.active {
-      color: #ef4444;
-    }
-  }
 
   .gps-direct-logos {
     display: flex;

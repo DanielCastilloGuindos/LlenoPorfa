@@ -80,10 +80,7 @@
   font-variant-numeric: tabular-nums;
 
   .price-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
+    display: none;
   }
 
   // 1. Precio Barato (Top Ahorro): Verde sólido con texto blanco puro
@@ -97,46 +94,31 @@
       background: #16a34a;
       box-shadow: 0 3px 8px rgba(22, 165, 74, 0.4);
     }
-
-    .price-dot {
-      display: none;
-    }
   }
 
-  // 2. Precio Normal (Media): Píldora neutra con punto ámbar (#F59E0B)
+  // 2. Precio Normal (Media): Píldora neutra con texto ámbar/naranja (#D97706 / #F59E0B)
   &.pin-medium {
     background: #ffffff;
-    color: #09090b;
+    color: #d97706;
     border: 1px solid #e4e4e7;
 
     [data-theme="dark"] & {
       background: #18181b;
-      color: #fafafa;
+      color: #f59e0b;
       border: 1px solid #27272a;
-    }
-
-    .price-dot {
-      background: #f59e0b;
     }
   }
 
-  // 3. Precio Caro: Píldora neutra semitransparente con punto rojo (#EF4444) y texto atenuado
+  // 3. Precio Caro: Píldora neutra con texto rojo (#DC2626 / #EF4444)
   &.pin-high {
-    background: rgba(255, 255, 255, 0.88);
-    color: rgba(9, 9, 11, 0.7);
-    border: 1px solid rgba(228, 228, 231, 0.8);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: #ffffff;
+    color: #dc2626;
+    border: 1px solid #e4e4e7;
 
     [data-theme="dark"] & {
-      background: rgba(24, 24, 27, 0.75);
-      color: rgba(250, 250, 250, 0.65);
-      border: 1px solid rgba(39, 39, 42, 0.6);
-    }
-
-    .price-dot {
-      background: #ef4444;
-      opacity: 0.85;
+      background: #18181b;
+      color: #ef4444;
+      border: 1px solid #27272a;
     }
   }
 

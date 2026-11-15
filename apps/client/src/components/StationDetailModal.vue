@@ -474,9 +474,9 @@ watch(
           @keydown.enter.prevent="openBarometer(); light()"
         >
           <div class="header-left">
-            <Cylinder :size="16" class="breakdown-icon" style="color: #f59e0b;" />
+            <Cylinder :size="18" class="breakdown-icon" />
             <div class="breakdown-titles">
-              <span class="section-heading">¿A dónde va tu dinero en esta estación?</span>
+              <span class="section-heading">¿A dónde va tu dinero?</span>
               <span class="section-sub">Desglose de 1L de {{ stationBreakdown.fuelName }} ({{ stationBreakdown.pvp.toFixed(3) }} €)</span>
             </div>
           </div>
@@ -507,33 +507,41 @@ watch(
           ></div>
         </div>
 
-        <div class="breakdown-pill-row">
-          <div class="breakdown-pill">
-            <span class="pill-dot crude"></span>
-            <span class="pill-label">Crudo:</span>
-            <strong>{{ stationBreakdown.crudeCost.toFixed(2) }}€</strong>
-            <small>{{ stationBreakdown.crudePct }}%</small>
+        <div class="breakdown-grid">
+          <div class="breakdown-item">
+            <div class="item-head">
+              <span class="pill-dot crude"></span>
+              <span class="item-label">Crudo</span>
+            </div>
+            <strong class="item-val tabular-nums">{{ stationBreakdown.crudeCost.toFixed(3) }} €</strong>
+            <span class="item-pct tabular-nums">{{ stationBreakdown.crudePct }}%</span>
           </div>
 
-          <div class="breakdown-pill">
-            <span class="pill-dot margin"></span>
-            <span class="pill-label">Margen:</span>
-            <strong>{{ stationBreakdown.margin.toFixed(2) }}€</strong>
-            <small>{{ stationBreakdown.marginPct }}%</small>
+          <div class="breakdown-item">
+            <div class="item-head">
+              <span class="pill-dot margin"></span>
+              <span class="item-label">Margen / Distribución</span>
+            </div>
+            <strong class="item-val tabular-nums">{{ stationBreakdown.margin.toFixed(3) }} €</strong>
+            <span class="item-pct tabular-nums">{{ stationBreakdown.marginPct }}%</span>
           </div>
 
-          <div class="breakdown-pill">
-            <span class="pill-dot ieh"></span>
-            <span class="pill-label">IEH:</span>
-            <strong>{{ stationBreakdown.ieh.toFixed(2) }}€</strong>
-            <small>{{ stationBreakdown.iehPct }}%</small>
+          <div class="breakdown-item">
+            <div class="item-head">
+              <span class="pill-dot ieh"></span>
+              <span class="item-label">Imp. Hidrocarburos</span>
+            </div>
+            <strong class="item-val tabular-nums">{{ stationBreakdown.ieh.toFixed(3) }} €</strong>
+            <span class="item-pct tabular-nums">{{ stationBreakdown.iehPct }}%</span>
           </div>
 
-          <div class="breakdown-pill">
-            <span class="pill-dot iva"></span>
-            <span class="pill-label">IVA 21%:</span>
-            <strong>{{ stationBreakdown.iva.toFixed(2) }}€</strong>
-            <small>{{ stationBreakdown.ivaPct }}%</small>
+          <div class="breakdown-item">
+            <div class="item-head">
+              <span class="pill-dot iva"></span>
+              <span class="item-label">IVA (21%)</span>
+            </div>
+            <strong class="item-val tabular-nums">{{ stationBreakdown.iva.toFixed(3) }} €</strong>
+            <span class="item-pct tabular-nums">{{ stationBreakdown.ivaPct }}%</span>
           </div>
         </div>
 
@@ -862,12 +870,13 @@ watch(
 }
 
 .station-money-breakdown {
-  @include card-surface;
-  padding: 12px 14px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-left: 3px solid #f59e0b;
+  gap: 12px;
 
   .breakdown-header {
     @include flex-between;
@@ -877,24 +886,26 @@ watch(
     .header-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
 
       .breakdown-icon {
-        font-size: 1.15rem;
+        color: #f59e0b;
+        flex-shrink: 0;
       }
 
       .breakdown-titles {
         display: flex;
         flex-direction: column;
+        gap: 1px;
 
         .section-heading {
-          font-size: 0.775rem;
-          font-weight: 800;
+          font-size: 0.825rem;
+          font-weight: 700;
           color: var(--text-main);
         }
 
         .section-sub {
-          font-size: 0.675rem;
+          font-size: 0.7rem;
           color: var(--text-muted);
         }
       }
@@ -902,89 +913,115 @@ watch(
 
     .open-barometer-link {
       font-size: 0.725rem;
-      font-weight: 700;
-      color: #f59e0b;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      padding: 3px 9px;
       white-space: nowrap;
-      transition: transform var(--transition-fast);
+      transition: all var(--transition-fast);
 
       &:hover {
-        transform: translateX(2px);
+        color: #f59e0b;
+        border-color: #f59e0b;
       }
     }
   }
 
   .mini-stacked-bar {
     width: 100%;
-    height: 14px;
-    border-radius: var(--radius-sm);
+    height: 10px;
+    border-radius: var(--radius-full);
     overflow: hidden;
     display: flex;
-    background: var(--bg-surface-subtle);
+    background: var(--border-color);
 
     .seg {
       height: 100%;
       transition: width 0.3s ease;
 
       &.seg-crude { background: #f59e0b; }
-      &.seg-margin { background: #0284c7; }
+      &.seg-margin { background: #3b82f6; }
       &.seg-ieh { background: #8b5cf6; }
-      &.seg-iva { background: #10b981; }
+      &.seg-iva { background: #ef4444; }
     }
   }
 
-  .breakdown-pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 
-    .breakdown-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.725rem;
-      color: var(--text-muted);
+    @include desktop {
+      grid-template-columns: repeat(4, 1fr);
+    }
 
-      .pill-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 2px;
-        flex-shrink: 0;
+    .breakdown-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
 
-        &.crude { background: #f59e0b; }
-        &.margin { background: #0284c7; }
-        &.ieh { background: #8b5cf6; }
-        &.iva { background: #ef4444; }
+      .item-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .pill-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+
+          &.crude { background: #f59e0b; }
+          &.margin { background: #3b82f6; }
+          &.ieh { background: #8b5cf6; }
+          &.iva { background: #ef4444; }
+        }
+
+        .item-label {
+          font-size: 0.675rem;
+          color: var(--text-muted);
+          font-weight: 500;
+          @include truncate;
+        }
       }
 
-      strong {
+      .item-val {
+        font-size: 0.85rem;
+        font-weight: 700;
         color: var(--text-main);
-        font-family: var(--font-mono);
       }
 
-      small {
+      .item-pct {
+        font-size: 0.675rem;
         color: var(--text-muted);
       }
     }
   }
 
   .margin-compare-badge {
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    font-size: 0.725rem;
-    line-height: 1.3;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    line-height: 1.35;
 
     &.cheaper {
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: rgba(22, 163, 74, 0.08);
+      color: var(--savings-green);
+      border: 1px solid rgba(22, 163, 74, 0.2);
 
       strong {
-        color: #10b981;
+        color: var(--savings-green);
       }
     }
 
     &.expensive {
-      background: rgba(245, 158, 11, 0.1);
+      background: rgba(245, 158, 11, 0.08);
       color: #d97706;
       border: 1px solid rgba(245, 158, 11, 0.25);
 
