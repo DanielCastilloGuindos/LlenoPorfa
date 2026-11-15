@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
     <div v-else-if="stations.length === 0" class="empty-container">
       <Fuel :size="48" class="empty-icon" />
       <h3>No hay resultados en esta zona</h3>
-      <p>Probá ampliando el radio de búsqueda o cambiando el filtro de marca.</p>
+      <p>Prueba a ampliar el radio de búsqueda o a cambiar el filtro de marca.</p>
     </div>
 
     <!-- Progressively rendered list of cards -->
@@ -159,21 +159,21 @@ onBeforeUnmount(() => {
 .station-list-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px 16px 24px;
   min-height: 200px;
+  background: var(--bg-surface);
 }
 
 .offline-mode-badge {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 12px 16px 4px;
   padding: 8px 12px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: var(--radius-md);
   font-size: 0.775rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #d97706;
 
   [data-theme="dark"] & {
@@ -184,16 +184,17 @@ onBeforeUnmount(() => {
 .cards-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  background: var(--bg-surface);
 }
 
 .sentinel-loader {
-  padding: 16px 0;
+  padding: 20px 0;
   text-align: center;
+  background: var(--bg-surface);
   .loading-more-text {
     font-size: 0.775rem;
     color: var(--text-muted);
-    font-weight: 600;
+    font-weight: 500;
   }
 }
 
@@ -201,14 +202,14 @@ onBeforeUnmount(() => {
 .skeleton-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  background: var(--bg-surface);
 
   .skeleton-card {
-    @include card-surface;
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border-bottom: 1px solid var(--border-color);
 
     .skeleton-line {
       background: linear-gradient(90deg, var(--bg-surface-subtle) 25%, var(--border-color) 50%, var(--bg-surface-subtle) 75%);
@@ -217,17 +218,17 @@ onBeforeUnmount(() => {
       border-radius: var(--radius-sm);
 
       &.line-header {
-        height: 18px;
-        width: 60%;
+        height: 16px;
+        width: 50%;
       }
       &.line-sub {
         height: 12px;
-        width: 40%;
+        width: 35%;
       }
       &.line-price {
-        height: 24px;
-        width: 30%;
-        margin-top: 8px;
+        height: 20px;
+        width: 25%;
+        margin-top: 6px;
       }
     }
   }
@@ -249,27 +250,28 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 48px 16px;
+  padding: 56px 16px;
   gap: 12px;
   color: var(--text-muted);
 
   .error-icon {
-    color: #ef4444;
+    color: var(--tier-high);
   }
 
   .empty-icon {
     color: var(--text-muted);
-    opacity: 0.5;
+    opacity: 0.4;
   }
 
   h3 {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 700;
     color: var(--text-main);
   }
 
   p {
-    font-size: 0.85rem;
-    max-width: 300px;
+    font-size: 0.825rem;
+    max-width: 280px;
   }
 
   .retry-btn {
@@ -277,12 +279,17 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 6px;
     margin-top: 8px;
-    padding: 8px 16px;
-    background: var(--color-primary);
-    color: #ffffff;
+    padding: 10px 18px;
+    background: var(--btn-cta-bg);
+    color: var(--btn-cta-text);
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.85rem;
+    transition: opacity var(--transition-fast);
+
+    &:hover {
+      opacity: 0.9;
+    }
   }
 }
 </style>

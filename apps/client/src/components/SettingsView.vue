@@ -109,7 +109,7 @@ const openEditVehicleModal = (veh: Vehicle) => {
 
 const handleSaveVehicle = () => {
   if (!vehicleAlias.value.trim() || !vehiclePlate.value.trim()) {
-    alert('Completá al menos el nombre/alias y la matrícula.');
+    alert('Completa al menos el nombre/alias y la matrícula.');
     return;
   }
 
@@ -343,10 +343,10 @@ const handleInstallPwa = async () => {
           <span>Añadir</span>
         </button>
       </div>
-      <p class="card-desc">Gestioná tus coches o motos para filtrar repostajes y vincular consumos.</p>
+      <p class="card-desc">Gestiona tus coches o motos para filtrar repostajes y vincular consumos.</p>
 
       <div v-if="vehicles.length === 0" class="vehicle-empty">
-        <p>No tenés vehículos dados de alta. Podés añadir tu coche habitual para facilitar los registros.</p>
+        <p>No tienes vehículos dados de alta. Puedes añadir tu coche habitual para facilitar los registros.</p>
       </div>
 
       <div v-else class="vehicle-list">
@@ -417,7 +417,7 @@ const handleInstallPwa = async () => {
       </div>
       <p class="card-desc">
         llenoPorfa es una iniciativa independiente sin ánimo de lucro y sin publicidad invasiva.
-        Si la herramienta te resulta de utilidad para ahorrar, podés colaborar para cubrir los costes de hosting y dominios.
+        Si la herramienta te resulta de utilidad para ahorrar, puedes colaborar para cubrir los costes de hosting y dominios.
       </p>
       <a
         :href="supportUrl"
@@ -582,17 +582,16 @@ const handleInstallPwa = async () => {
   align-items: center;
   gap: 8px;
   padding: 11px 18px;
-  background: var(--color-primary);
-  color: #ffffff;
+  background: var(--btn-cta-bg);
+  color: var(--btn-cta-text);
   border-radius: var(--radius-md);
   font-weight: 700;
   font-size: 0.875rem;
   min-height: 44px;
-  box-shadow: 0 4px 12px var(--color-primary-glow);
-  transition: all var(--transition-fast);
+  transition: opacity var(--transition-fast);
 
   &:hover {
-    background: var(--color-primary-dark);
+    opacity: 0.9;
   }
 }
 

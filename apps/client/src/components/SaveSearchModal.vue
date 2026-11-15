@@ -155,8 +155,7 @@ const handleSave = () => {
     color: var(--text-main);
 
     &:focus {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 2px var(--color-primary-glow);
+      border-color: var(--border-focus);
     }
   }
 

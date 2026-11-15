@@ -5,7 +5,6 @@ import {
   Heart,
   Clock,
   MapPin,
-  Sparkles,
   Share2,
   ReceiptText,
   Cylinder,
@@ -236,9 +235,7 @@ watch(
       @touchend="onTouchEnd"
     >
       <!-- Drag handle for mobile -->
-      <div class="drag-handle-bar">
-        <div class="handle"></div>
-      </div>
+      <div class="bottom-sheet-handle"></div>
 
       <!-- Pinned Header: Title, address and action buttons stay visible when scrolling -->
       <div class="sheet-header">
@@ -281,7 +278,6 @@ watch(
 
       <!-- Tank savings highlight box -->
       <div v-if="savings > 0.5" class="savings-banner">
-        <Sparkles :size="18" class="sparkle-icon" />
         <div class="savings-text">
           <strong>Ahorro estimado: ~{{ savings.toFixed(2) }} €</strong>
           <span>Llenando depósito de {{ settings.tankCapacityLiters }}L frente a la media de la zona</span>
@@ -685,23 +681,21 @@ watch(
   gap: 10px;
   width: 100%;
   padding: 13px 18px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: #ffffff;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border-radius: var(--radius-lg);
   font-weight: 700;
   font-size: 0.925rem;
   letter-spacing: -0.01em;
   min-height: 48px;
-  box-shadow: 0 4px 16px var(--color-primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all var(--transition-fast);
+  transition: opacity var(--transition-fast);
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px var(--color-primary-glow);
+    opacity: 0.9;
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.99);
   }
 }
 
@@ -713,23 +707,21 @@ watch(
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--tier-low-bg);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: var(--savings-bg);
+  border: 1px solid var(--savings-border);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
-  color: var(--tier-low);
-
-  .sparkle-icon {
-    flex-shrink: 0;
-  }
+  padding: 12px 16px;
+  color: var(--savings-green);
 
   .savings-text {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 
     strong {
-      font-size: 0.9rem;
-      font-weight: 800;
+      font-size: 0.875rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     span {
@@ -754,35 +746,35 @@ watch(
 
   .prices-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
 
     .fuel-price-card {
       background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 10px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
 
       .fuel-name {
-        font-size: 0.7rem;
+        font-size: 0.725rem;
         color: var(--text-muted);
         font-weight: 600;
       }
 
       .fuel-value {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         font-weight: 800;
-        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
         color: var(--text-main);
       }
 
       &.empty {
-        opacity: 0.5;
+        opacity: 0.45;
         .fuel-value {
-          font-size: 0.85rem;
+          font-size: 0.825rem;
           font-weight: 500;
         }
       }

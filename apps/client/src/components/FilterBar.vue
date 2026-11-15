@@ -141,20 +141,11 @@ const handleOpen24hToggle = () => {
 
     <!-- Sticky Stats Bar: Siempre fijo mostrando Mínimo y Medio -->
     <div v-if="!onlyFuels && stats.count > 0" class="sticky-stats-summary">
-      <div class="stat-item">
-        <span class="stat-label">Surtidores:</span>
-        <strong class="stat-number">{{ stats.count }}</strong>
-      </div>
-
-      <div v-if="stats.minPrice" class="stat-item highlight">
-        <span class="stat-label">Mínimo:</span>
-        <strong class="stat-number text-green">{{ stats.minPrice.toFixed(3) }} €</strong>
-      </div>
-
-      <div v-if="stats.avgPrice" class="stat-item">
-        <span class="stat-label">Media:</span>
-        <strong class="stat-number">{{ stats.avgPrice.toFixed(3) }} €</strong>
-      </div>
+      <span class="stats-text tabular-nums">
+        {{ stats.count }} surtidores
+        <template v-if="stats.minPrice"> · Mín: <span class="stat-min">{{ stats.minPrice.toFixed(3) }} €</span></template>
+        <template v-if="stats.avgPrice"> · Media: <span class="stat-avg">{{ stats.avgPrice.toFixed(3) }} €</span></template>
+      </span>
     </div>
 
     <!-- Draggable Bottom Sheet for Advanced Filters on Mobile / Dropdown on Desktop -->
@@ -167,9 +158,7 @@ const handleOpen24hToggle = () => {
         @touchend="onTouchEnd"
       >
         <!-- Drag Handle for Mobile -->
-        <div class="drag-handle-bar">
-          <div class="handle"></div>
-        </div>
+        <div class="bottom-sheet-handle"></div>
 
         <div class="sheet-title-bar">
           <h4>Filtros Avanzados</h4>
@@ -278,100 +267,85 @@ const handleOpen24hToggle = () => {
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 0.8rem;
   white-space: nowrap;
-  min-height: 38px;
-  transition: all var(--transition-fast);
+  min-height: 36px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
 
   &:hover {
-    border-color: var(--color-primary);
+    border-color: var(--border-focus);
     color: var(--text-main);
   }
 
   &.active {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: #ffffff;
-    box-shadow: 0 2px 8px var(--color-primary-glow);
+    color: var(--btn-primary-text);
+    font-weight: 700;
   }
 }
 
 .toggle-filters-btn {
   margin-left: auto;
   position: relative;
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   @include flex-center;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 
   &:hover {
     color: var(--text-main);
+    border-color: var(--border-focus);
   }
 
   &.active {
     border-color: var(--color-primary);
     color: var(--color-primary);
-    background: var(--color-primary-light);
+    background: var(--savings-bg);
   }
 
   .filter-dot {
     position: absolute;
     top: 6px;
     right: 6px;
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: var(--color-primary);
   }
 }
 
-// Fixed stats bar below fuel pills
+// Fixed stats bar below fuel pills: clean single line of text
 .sticky-stats-summary {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 6px 4px 2px;
-  border-top: 1px dashed var(--border-color);
+  padding: 4px 0 2px;
   width: 100%;
 
-  .stat-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
-    background: var(--bg-surface-subtle);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-full);
-    font-size: 0.725rem;
+  .stats-text {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    font-weight: 500;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-    .stat-label {
-      color: var(--text-muted);
+    .stat-min {
+      color: var(--savings-green);
+      font-weight: 700;
     }
 
-    .stat-number {
-      font-weight: 800;
+    .stat-avg {
       color: var(--text-main);
-      font-family: var(--font-mono);
-
-      &.text-green {
-        color: var(--tier-low);
-      }
-    }
-
-    &.highlight {
-      background: var(--tier-low-bg);
-      border-color: rgba(16, 185, 129, 0.3);
+      font-weight: 600;
     }
   }
 }
@@ -380,9 +354,10 @@ const handleOpen24hToggle = () => {
 .filters-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 250; // Above bottom navigation bar
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 250;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -395,7 +370,7 @@ const handleOpen24hToggle = () => {
 
 .bottom-sheet-panel {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   border-top: 1px solid var(--border-color);
   box-shadow: var(--shadow-lg);
   width: 100%;
@@ -404,7 +379,7 @@ const handleOpen24hToggle = () => {
   max-height: 85dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 14px 20px calc(var(--bottom-nav-height) + var(--safe-bottom) + 24px);
+  padding: 10px 20px calc(var(--bottom-nav-height) + var(--safe-bottom) + 24px);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -417,28 +392,11 @@ const handleOpen24hToggle = () => {
   }
 }
 
-.drag-handle-bar {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 4px;
-
-  @include desktop {
-    display: none;
-  }
-
-  .handle {
-    width: 38px;
-    height: 4px;
-    border-radius: 4px;
-    background: var(--border-color);
-  }
-}
-
 .sheet-title-bar {
   @include flex-between;
   h4 {
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text-main);
   }
   .sheet-close-btn {
@@ -454,13 +412,13 @@ const handleOpen24hToggle = () => {
 .panel-content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 
   .filter-label {
     display: flex;
@@ -470,6 +428,7 @@ const handleOpen24hToggle = () => {
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 }
 
@@ -479,25 +438,26 @@ const handleOpen24hToggle = () => {
   gap: 6px;
 
   .chip {
-    padding: 5px 12px;
-    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-muted);
-    min-height: 38px;
-    transition: all var(--transition-fast);
+    min-height: 36px;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
 
     &:hover {
       color: var(--text-main);
+      border-color: var(--border-focus);
     }
 
     &.active {
-      background: var(--color-primary-light);
+      background: var(--savings-bg);
       border-color: var(--color-primary);
-      color: var(--color-primary-dark);
-      font-weight: 800;
+      color: var(--color-primary);
+      font-weight: 700;
     }
   }
 }
@@ -530,6 +490,11 @@ const handleOpen24hToggle = () => {
     font-size: 0.825rem;
     font-weight: 600;
     color: var(--text-main);
+    min-height: 42px;
+
+    &:focus {
+      border-color: var(--border-focus);
+    }
   }
 }
 
@@ -544,19 +509,20 @@ const handleOpen24hToggle = () => {
   font-size: 0.825rem;
   font-weight: 600;
   color: var(--text-muted);
-  min-height: 44px;
-  transition: all var(--transition-fast);
+  min-height: 42px;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
 
   &:hover {
     color: var(--text-main);
+    border-color: var(--border-focus);
   }
 
   &.active {
-    background: var(--color-primary-light);
+    background: var(--savings-bg);
     border-color: var(--color-primary);
-    color: var(--color-primary-dark);
-    font-weight: 800;
+    color: var(--color-primary);
+    font-weight: 700;
   }
 }
 </style>

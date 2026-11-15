@@ -35,12 +35,12 @@ $breakpoint-xl: 1280px;
 }
 
 @mixin glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 
   [data-theme="dark"] & {
-    background: rgba(17, 24, 39, 0.85);
+    background: rgba(18, 18, 20, 0.88);
   }
 }
 
@@ -49,10 +49,9 @@ $breakpoint-xl: 1280px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
   &:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-glow);
+    border-color: var(--border-focus);
   }
 }

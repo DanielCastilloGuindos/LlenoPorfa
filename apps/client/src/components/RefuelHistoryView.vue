@@ -11,7 +11,7 @@ import {
   FileText,
   Check,
   X,
-  Sparkles,
+  TrendingDown,
   TrendingUp,
   Droplet,
   Euro,
@@ -68,6 +68,16 @@ const odometerKm = ref<number | ''>('');
 const notes = ref('');
 
 const lastEditedField = ref<'price' | 'liters' | 'total'>('price');
+
+const calculatedField = computed<'price' | 'liters' | 'total' | null>(() => {
+  const p = Number(pricePerLiter.value);
+  const l = Number(liters.value);
+  const t = Number(totalAmount.value);
+  if (p > 0 && l > 0 && lastEditedField.value !== 'total') return 'total';
+  if (t > 0 && p > 0 && lastEditedField.value === 'total') return 'liters';
+  if (t > 0 && l > 0 && lastEditedField.value === 'total' && !p) return 'price';
+  return null;
+});
 
 const fuelOptions: { id: FuelId; label: string }[] = [
   { id: 'g95_e5', label: 'Gasolina 95 E5' },
@@ -326,7 +336,7 @@ const handleSave = () => {
   const t = Number(totalAmount.value);
 
   if (!stationName.value.trim() || p <= 0 || l <= 0 || t <= 0) {
-    alert('Completá al menos la gasolinera, el precio y los litros o total.');
+    alert('Completa al menos la gasolinera, el precio y los litros o total.');
     return;
   }
 
@@ -427,42 +437,34 @@ onMounted(() => {
     <!-- Quick Statistics Summary Cards -->
     <div class="stats-row">
       <div class="stat-card">
-        <div class="icon-wrap euro">
-          <Euro :size="18" />
-        </div>
+        <Euro :size="20" class="stat-icon" />
         <div class="stat-data">
           <span class="label">Gasto Total</span>
-          <strong class="val">{{ displayedStats.totalSpent.toFixed(2) }} €</strong>
+          <strong class="val tabular-nums">{{ displayedStats.totalSpent.toFixed(2) }} €</strong>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="icon-wrap savings">
-          <Sparkles :size="18" />
-        </div>
+        <TrendingDown :size="20" class="stat-icon savings" />
         <div class="stat-data">
           <span class="label">Ahorro Estimado</span>
-          <strong class="val highlight">{{ displayedStats.totalSavings.toFixed(2) }} €</strong>
+          <strong class="val highlight tabular-nums">{{ displayedStats.totalSavings.toFixed(2) }} €</strong>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="icon-wrap drop">
-          <Droplet :size="18" />
-        </div>
+        <Droplet :size="20" class="stat-icon" />
         <div class="stat-data">
           <span class="label">Litros Totales</span>
-          <strong class="val">{{ displayedStats.totalLiters.toFixed(1) }} L</strong>
+          <strong class="val tabular-nums">{{ displayedStats.totalLiters.toFixed(1) }} L</strong>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="icon-wrap trend">
-          <TrendingUp :size="18" />
-        </div>
+        <TrendingUp :size="20" class="stat-icon" />
         <div class="stat-data">
           <span class="label">Precio Medio</span>
-          <strong class="val">
+          <strong class="val tabular-nums">
             {{ displayedStats.avgPricePerLiter > 0 ? displayedStats.avgPricePerLiter.toFixed(3) : '---' }} €/L
           </strong>
         </div>
@@ -522,6 +524,9 @@ onMounted(() => {
     <Teleport to="body">
       <div v-if="isFormOpen" class="modal-backdrop" @click.self="isFormOpen = false">
         <div class="form-modal-card">
+          <!-- Mobile Drag Handle -->
+          <div class="bottom-sheet-handle"></div>
+
           <div class="modal-header">
             <div class="title-wrap">
               <ReceiptText :size="20" class="text-primary" />
@@ -546,7 +551,7 @@ onMounted(() => {
                   @click="selectQuickStation(st)"
                 >
                   <span>{{ st.brand }}</span>
-                  <small v-if="st.selected_fuel_price">{{ st.selected_fuel_price.toFixed(3) }}€</small>
+                  <small v-if="st.selected_fuel_price" class="tabular-nums">{{ st.selected_fuel_price.toFixed(3) }}€</small>
                 </button>
               </div>
             </div>
@@ -565,7 +570,7 @@ onMounted(() => {
               </div>
               <div v-else class="vehicle-empty-notice">
                 <Car :size="15" class="text-muted" />
-                <span>Sin vehículos registrados. Podés añadirlos en <strong>Ajustes > Mis Vehículos</strong>.</span>
+                <span>Sin vehículos registrados. Puedes añadirlos en <strong>Ajustes > Mis Vehículos</strong>.</span>
               </div>
             </div>
 
@@ -604,8 +609,7 @@ onMounted(() => {
           <!-- Price, Liters & Total (Auto-calculated!) -->
           <div class="calc-box">
             <div class="calc-header">
-              <Sparkles :size="14" class="text-primary" />
-              <span>Cálculo automático: completá 2 campos y el 3º se calcula solo</span>
+              <span>Cálculo automático: completa 2 campos para calcular automáticamente el tercero</span>
             </div>
 
             <div class="calc-grid">
@@ -618,7 +622,8 @@ onMounted(() => {
                   min="0.1"
                   required
                   placeholder="1.629"
-                  class="form-input font-mono"
+                  class="form-input font-mono tabular-nums"
+                  :class="{ 'is-calculated': calculatedField === 'price' }"
                   @input="onPriceInput"
                 />
               </div>
@@ -632,7 +637,8 @@ onMounted(() => {
                   min="0.1"
                   required
                   placeholder="45.5"
-                  class="form-input font-mono"
+                  class="form-input font-mono tabular-nums"
+                  :class="{ 'is-calculated': calculatedField === 'liters' }"
                   @input="onLitersInput"
                 />
               </div>
@@ -646,7 +652,8 @@ onMounted(() => {
                   min="0.1"
                   required
                   placeholder="74.12"
-                  class="form-input font-mono total-input"
+                  class="form-input font-mono tabular-nums total-input"
+                  :class="{ 'is-calculated': calculatedField === 'total' }"
                   @input="onTotalInput"
                 />
               </div>
@@ -700,11 +707,11 @@ onMounted(() => {
 
   <!-- Empty State -->
     <div v-if="filteredLogs.length === 0" class="empty-state">
-      <ReceiptText :size="52" class="empty-icon" />
-      <h3 v-if="logs.length === 0">No tenés repostajes registrados</h3>
+      <ReceiptText :size="48" class="empty-icon" />
+      <h3 v-if="logs.length === 0">No tienes repostajes registrados</h3>
       <h3 v-else>No hay repostajes con los filtros seleccionados</h3>
-      <p v-if="logs.length === 0">Registrá tu primer llenado pulsando en "Nuevo Repostaje" o directamente desde el detalle de cualquier gasolinera.</p>
-      <p v-else>Probá cambiando el trimestre o el vehículo en la barra superior.</p>
+      <p v-if="logs.length === 0">Registra tu primer repostaje pulsando en "Nuevo Repostaje" o directamente desde el detalle de cualquier gasolinera.</p>
+      <p v-else>Prueba a cambiar el trimestre o el vehículo en la barra superior.</p>
       <button v-if="logs.length === 0" class="empty-action-btn" @click="openNewRefuelForm">
         <Plus :size="16" />
         <span>Añadir primer repostaje</span>
@@ -726,13 +733,12 @@ onMounted(() => {
               <span>{{ item.vehicleAlias }}{{ item.vehiclePlate ? ` (${item.vehiclePlate})` : '' }}</span>
             </span>
             <span class="pill-fuel">{{ item.fuelType.toUpperCase() }}</span>
-            <span class="pill-data">{{ item.pricePerLiter.toFixed(3) }} €/L</span>
-            <span class="pill-data">{{ item.liters.toFixed(2) }} L</span>
-            <span v-if="item.savingsEur && item.savingsEur > 0" class="pill-savings">
-              <Sparkles :size="11" />
+            <span class="pill-data tabular-nums">{{ item.pricePerLiter.toFixed(3) }} €/L</span>
+            <span class="pill-data tabular-nums">{{ item.liters.toFixed(2) }} L</span>
+            <span v-if="item.savingsEur && item.savingsEur > 0" class="pill-savings tabular-nums">
               <span>Ahorro: ~{{ item.savingsEur.toFixed(2) }} €</span>
             </span>
-            <span v-if="item.odometerKm" class="pill-km">{{ item.odometerKm.toLocaleString() }} km</span>
+            <span v-if="item.odometerKm" class="pill-km tabular-nums">{{ item.odometerKm.toLocaleString() }} km</span>
           </div>
 
           <p v-if="item.notes" class="card-notes">"{{ item.notes }}"</p>
@@ -764,7 +770,7 @@ onMounted(() => {
           <h3>¡Ahorraste {{ savedAmountPrompt.toFixed(2) }} € en este repostaje!</h3>
           <p>
             LlenoPorfa es un proyecto independiente y gratuito para ayudarte a pagar lo mínimo en cada repostaje.
-            Si la app te ayuda a ahorrar mes a mes, podés colaborar voluntariamente para mantener los servidores activos.
+            Si la app te ayuda a ahorrar mes a mes, puedes colaborar voluntariamente para mantener los servidores activos.
           </p>
           <div class="support-actions">
             <a
@@ -873,17 +879,15 @@ onMounted(() => {
     align-items: center;
     gap: 6px;
     padding: 9px 16px;
-    background: var(--color-primary);
-    color: #ffffff;
+    background: var(--btn-cta-bg);
+    color: var(--btn-cta-text);
     border-radius: var(--radius-md);
     font-size: 0.875rem;
-    font-weight: 700;
-    box-shadow: 0 4px 12px var(--color-primary-glow);
-    transition: all var(--transition-fast);
+    font-weight: 600;
+    transition: opacity var(--transition-fast);
 
     &:hover {
-      background: var(--color-primary-dark);
-      transform: translateY(-1px);
+      opacity: 0.9;
     }
   }
 }
@@ -899,34 +903,20 @@ onMounted(() => {
   }
 
   .stat-card {
-    @include card-surface;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     padding: 12px 14px;
     display: flex;
     align-items: center;
     gap: 10px;
 
-    .icon-wrap {
-      width: 38px;
-      height: 38px;
-      border-radius: var(--radius-md);
-      @include flex-center;
+    .stat-icon {
       flex-shrink: 0;
+      color: var(--text-muted);
 
-      &.euro {
-        background: rgba(16, 185, 129, 0.15);
-        color: var(--color-primary);
-      }
       &.savings {
-        background: rgba(16, 185, 129, 0.2);
-        color: var(--color-primary);
-      }
-      &.drop {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
-      }
-      &.trend {
-        background: rgba(245, 158, 11, 0.15);
-        color: #f59e0b;
+        color: var(--savings-green);
       }
     }
 
@@ -943,12 +933,12 @@ onMounted(() => {
 
       .val {
         font-size: 1.15rem;
-        font-weight: 900;
+        font-weight: 800;
         font-family: var(--font-mono);
         color: var(--text-main);
 
         &.highlight {
-          color: var(--color-primary);
+          color: var(--savings-green);
         }
       }
     }
@@ -1130,12 +1120,17 @@ onMounted(() => {
     align-items: center;
     gap: 6px;
     margin-top: 8px;
-    padding: 9px 18px;
-    background: var(--color-primary);
-    color: #ffffff;
-    font-weight: 700;
+    padding: 10px 18px;
+    background: var(--btn-cta-bg);
+    color: var(--btn-cta-text);
+    font-weight: 600;
     font-size: 0.85rem;
     border-radius: var(--radius-md);
+    transition: opacity var(--transition-fast);
+
+    &:hover {
+      opacity: 0.9;
+    }
   }
 }
 
@@ -1143,11 +1138,17 @@ onMounted(() => {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 250;
   @include flex-center;
   padding: 16px;
+
+  @include mobile {
+    align-items: flex-end;
+    padding: 0;
+  }
 }
 
 .form-modal-card {
@@ -1163,6 +1164,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  @include mobile {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 85dvh;
+    padding: 10px 20px calc(24px + var(--safe-bottom));
+  }
 }
 
 .modal-header {
@@ -1178,8 +1185,9 @@ onMounted(() => {
     }
 
     h3 {
-      font-size: 1.15rem;
-      font-weight: 800;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
     }
   }
 
@@ -1247,16 +1255,22 @@ onMounted(() => {
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   color: var(--text-main);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast);
 
   &:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-glow);
+    border-color: var(--border-focus);
   }
 
   &.font-mono {
     font-family: var(--font-mono);
-    font-weight: 700;
+    font-weight: 600;
+  }
+
+  &.is-calculated {
+    color: var(--savings-green) !important;
+    border-color: var(--savings-border) !important;
+    background: var(--savings-bg) !important;
+    font-weight: 700 !important;
   }
 }
 
@@ -1287,12 +1301,8 @@ onMounted(() => {
     align-items: center;
     gap: 6px;
     font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--color-primary-dark);
-
-    [data-theme="dark"] & {
-      color: var(--color-primary);
-    }
+    font-weight: 600;
+    color: var(--text-muted);
   }
 
   .calc-grid {
@@ -1306,9 +1316,9 @@ onMounted(() => {
   }
 
   .total-input {
-    color: var(--color-primary);
+    color: var(--text-main);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
   }
 }
 
@@ -1347,17 +1357,25 @@ onMounted(() => {
       flex-shrink: 0;
       min-height: 38px;
       cursor: pointer;
-      transition: all var(--transition-fast);
+      transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
       small {
-        color: var(--color-primary);
-        font-weight: 700;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      &:hover {
+        border-color: var(--border-focus);
       }
 
       &.active {
-        background: var(--color-primary-light);
-        border-color: var(--color-primary);
-        color: var(--color-primary-dark);
+        background: var(--btn-cta-bg);
+        border-color: var(--btn-cta-bg);
+        color: var(--btn-cta-text);
+
+        small {
+          color: var(--savings-green);
+        }
       }
     }
   }
@@ -1370,13 +1388,16 @@ onMounted(() => {
   margin-top: 6px;
 
   .btn-secondary {
-    padding: 9px 16px;
+    padding: 10px 18px;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--text-main);
+    background: var(--bg-surface-subtle);
+    border: 1px solid var(--border-color);
+    transition: background-color var(--transition-fast);
     &:hover {
-      color: var(--text-main);
+      background: var(--border-color);
     }
   }
 
@@ -1384,16 +1405,16 @@ onMounted(() => {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 9px 18px;
+    padding: 10px 18px;
     border-radius: var(--radius-md);
-    background: var(--color-primary);
-    color: #ffffff;
-    font-weight: 700;
+    background: var(--btn-cta-bg);
+    color: var(--btn-cta-text);
+    font-weight: 600;
     font-size: 0.875rem;
-    transition: all var(--transition-fast);
+    transition: opacity var(--transition-fast);
 
     &:hover {
-      background: var(--color-primary-dark);
+      opacity: 0.9;
     }
   }
 }

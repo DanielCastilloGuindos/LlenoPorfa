@@ -173,8 +173,7 @@ onBeforeUnmount(() => {
   transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 
   &:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+    border-color: var(--border-focus);
   }
 
   &:active {
@@ -193,10 +192,9 @@ onBeforeUnmount(() => {
   top: 10px;
   right: 10px;
   z-index: 400;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
   padding: 4px 10px;
   display: flex;

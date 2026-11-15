@@ -5,7 +5,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Sparkles,
   AlertTriangle,
   Info,
   Calendar,
@@ -346,7 +345,7 @@ const onChartTouch = (e: TouchEvent) => {
         <div class="recommendation-banner" :class="marketData.trend">
           <div class="banner-icon-wrap">
             <AlertTriangle v-if="marketData.trend === 'rising'" :size="20" />
-            <Sparkles v-else-if="marketData.trend === 'falling'" :size="20" />
+            <TrendingDown v-else-if="marketData.trend === 'falling'" :size="20" />
             <Info v-else :size="20" />
           </div>
           <div class="banner-text">

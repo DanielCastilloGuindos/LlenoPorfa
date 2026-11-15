@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-next';
+import { Navigation, Plus, Minus, X, ArrowRight } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
@@ -313,10 +313,9 @@ onBeforeUnmount(() => {
           <span v-if="selectedStation.is_open_24h" class="badge tag-24h">24H</span>
           <span
             v-if="calculateTankSavings(selectedStation.selected_fuel_price) > 0.5"
-            class="badge savings"
+            class="badge savings tabular-nums"
           >
-            <Sparkles :size="11" />
-            ~{{ calculateTankSavings(selectedStation.selected_fuel_price).toFixed(2) }} €
+            Ahorro ~{{ calculateTankSavings(selectedStation.selected_fuel_price).toFixed(2) }} €
           </span>
         </div>
 
@@ -586,17 +585,15 @@ onBeforeUnmount(() => {
         gap: 6px;
         font-size: 0.775rem;
         font-weight: 700;
-        color: #ffffff;
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: var(--btn-primary-text);
+        background: var(--btn-primary-bg);
         padding: 6px 14px;
         min-height: 36px;
         border-radius: var(--radius-full);
-        box-shadow: 0 3px 10px var(--color-primary-glow);
-        transition: all var(--transition-fast);
+        transition: opacity var(--transition-fast);
 
         &:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 5px 14px var(--color-primary-glow);
+          opacity: 0.9;
         }
 
         &:active {

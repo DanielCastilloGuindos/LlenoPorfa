@@ -168,7 +168,7 @@ const openSaveModal = () => {
 @use "../styles/mixins" as *;
 
 .search-header {
-  padding: 10px 16px 8px;
+  padding: 12px 16px 10px;
   background: var(--bg-surface);
   display: flex;
   flex-direction: column;
@@ -177,6 +177,7 @@ const openSaveModal = () => {
 
 .header-top-bar {
   @include flex-between;
+  gap: 8px;
 }
 
 .location-pill {
@@ -184,22 +185,22 @@ const openSaveModal = () => {
   align-items: center;
   gap: 6px;
   background: var(--bg-surface-subtle);
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.825rem;
+  font-weight: 600;
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  max-width: 65%;
-  min-height: 44px; // 44x44px minimum touch area
-  transition: all var(--transition-fast);
+  max-width: 50%;
+  min-height: 38px;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 
   &:hover {
     background: var(--border-color);
   }
 
   .location-icon {
-    color: var(--color-primary);
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
@@ -216,26 +217,24 @@ const openSaveModal = () => {
 .crude-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   background: var(--bg-surface-subtle);
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: 0.775rem;
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  min-height: 40px;
+  min-height: 38px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
   &:hover {
-    border-color: #f59e0b;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    border-color: var(--border-focus);
   }
 
   .crude-icon {
-    color: #f59e0b;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
@@ -245,8 +244,8 @@ const openSaveModal = () => {
 
     strong {
       color: var(--text-main);
-      font-family: var(--font-mono);
-      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
     }
   }
 
@@ -254,15 +253,15 @@ const openSaveModal = () => {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    font-family: var(--font-mono);
+    font-size: 0.725rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 
     &.rising {
-      color: #ef4444;
+      color: var(--tier-high);
     }
     &.falling {
-      color: #10b981;
+      color: var(--savings-green);
     }
     &.stable {
       color: var(--text-muted);
@@ -270,9 +269,9 @@ const openSaveModal = () => {
   }
 
   @media (max-width: 480px) {
-    padding: 5px 8px;
+    padding: 6px 9px;
     gap: 4px;
-    font-size: 0.72rem;
+    font-size: 0.725rem;
 
     .crude-label-text {
       display: none;
@@ -283,24 +282,25 @@ const openSaveModal = () => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .btn-icon {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: var(--radius-md);
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   @include flex-center;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
   &:hover {
-    background: var(--color-primary-light);
-    color: var(--color-primary-dark);
+    background: var(--border-color);
+    color: var(--text-main);
   }
 
   &.loading {
@@ -343,12 +343,11 @@ const openSaveModal = () => {
     border-radius: var(--radius-md);
     font-size: 0.875rem;
     color: var(--text-main);
-    min-height: 44px;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    min-height: 42px;
+    transition: border-color var(--transition-fast);
 
     &:focus {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 2px var(--color-primary-glow);
+      border-color: var(--border-focus);
     }
 
     &::placeholder {
@@ -374,11 +373,17 @@ const openSaveModal = () => {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 200;
   @include flex-center;
   padding: 16px;
+
+  @include mobile {
+    align-items: flex-end;
+    padding: 0;
+  }
 }
 
 .modal-card {
@@ -392,20 +397,28 @@ const openSaveModal = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  @include mobile {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-bottom: calc(20px + var(--safe-bottom));
+  }
 }
 
 .modal-header {
   @include flex-between;
 
   h3 {
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
   }
 
   .close-btn {
     color: var(--text-muted);
-    min-width: 38px;
-    min-height: 38px;
+    min-width: 36px;
+    min-height: 36px;
     &:hover {
       color: var(--text-main);
     }
@@ -416,17 +429,16 @@ const openSaveModal = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 12px 14px;
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   text-align: left;
-  min-height: 56px;
-  transition: all var(--transition-fast);
+  min-height: 52px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
   &:hover {
-    border-color: var(--color-primary);
-    background: var(--color-primary-light);
+    border-color: var(--border-focus);
   }
 
   .text-primary {
@@ -438,7 +450,8 @@ const openSaveModal = () => {
     flex-direction: column;
 
     strong {
-      font-size: 0.9rem;
+      font-size: 0.875rem;
+      font-weight: 600;
       color: var(--text-main);
     }
 
@@ -450,7 +463,7 @@ const openSaveModal = () => {
 }
 
 .section-title {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -467,21 +480,21 @@ const openSaveModal = () => {
     border-radius: var(--radius-md);
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    min-height: 44px;
+    min-height: 42px;
     @include flex-between;
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
 
     &:hover {
-      background: var(--border-color);
+      border-color: var(--border-focus);
     }
 
     &.active {
       border-color: var(--color-primary);
-      background: var(--color-primary-light);
-      color: var(--color-primary-dark);
-      font-weight: 800;
+      background: var(--savings-bg);
+      color: var(--color-primary);
+      font-weight: 700;
     }
   }
 }

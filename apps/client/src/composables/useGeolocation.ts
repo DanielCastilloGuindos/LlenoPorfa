@@ -65,7 +65,7 @@ export function useGeolocation() {
           locationState.value.permissionDenied = true;
           locationState.value.error =
             err.code === err.PERMISSION_DENIED
-              ? 'Permiso de ubicación no concedido. Podés buscar manualmente por ciudad o código postal.'
+              ? 'Permiso de ubicación no concedido. Puedes buscar manualmente por ciudad o código postal.'
               : 'No pudimos obtener tu ubicación con precisión. Usando zona por defecto.';
           reject(err);
         },

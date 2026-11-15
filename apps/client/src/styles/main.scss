@@ -161,3 +161,18 @@
     background: var(--text-muted);
   }
 }
+
+// Utility Classes for Mobile Utility Design System
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(161, 161, 170, 0.4);
+  margin: 10px auto 16px;
+  flex-shrink: 0;
+}

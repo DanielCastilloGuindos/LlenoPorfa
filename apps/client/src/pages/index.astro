@@ -45,7 +45,7 @@ import '../styles/main.scss';
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Dynamic Theme Color for Mobile Status Bar -->
-    <meta id="theme-color-meta" name="theme-color" content="#0b0f19" />
+    <meta id="theme-color-meta" name="theme-color" content="#000000" />
 
     <!-- Preconnect to OpenStreetMap free tile server -->
     <link rel="preconnect" href="https://tile.openstreetmap.org" />
@@ -72,12 +72,12 @@ import '../styles/main.scss';
         if (!meta) return;
         const currentTheme = document.documentElement.getAttribute('data-theme');
         if (currentTheme === 'dark') {
-          meta.setAttribute('content', '#0b0f19');
+          meta.setAttribute('content', '#000000');
         } else if (currentTheme === 'light') {
-          meta.setAttribute('content', '#ffffff');
+          meta.setAttribute('content', '#f4f4f5');
         } else {
           const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          meta.setAttribute('content', prefersDark ? '#0b0f19' : '#ffffff');
+          meta.setAttribute('content', prefersDark ? '#000000' : '#f4f4f5');
         }
       }
 

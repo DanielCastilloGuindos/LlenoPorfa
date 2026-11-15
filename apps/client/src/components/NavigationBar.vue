@@ -123,17 +123,16 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
   border-bottom: 1px solid var(--border-color);
 
   .brand-icon {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    color: #ffffff;
+    background: var(--text-main);
+    color: var(--bg-surface);
     @include flex-center;
-    box-shadow: 0 4px 12px var(--color-primary-glow);
   }
 
   .brand-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: var(--text-main);
@@ -149,7 +148,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   margin-top: 24px;
   flex: 1;
 
@@ -158,13 +157,13 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     border-radius: var(--radius-md);
     color: var(--text-muted);
     font-weight: 600;
-    font-size: 0.925rem;
-    min-height: 48px;
-    transition: all var(--transition-fast);
+    font-size: 0.9rem;
+    min-height: 44px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
 
     &:hover {
       background: var(--bg-surface-subtle);
@@ -172,19 +171,15 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     }
 
     &.active {
-      background: var(--color-primary-light);
-      color: var(--color-primary-dark);
-
-      [data-theme="dark"] & {
-        background: rgba(16, 185, 129, 0.15);
-        color: var(--color-primary);
-      }
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+      font-weight: 700;
 
       .active-indicator {
         position: absolute;
         right: 0;
-        top: 20%;
-        bottom: 20%;
+        top: 25%;
+        bottom: 25%;
         width: 3px;
         background: var(--color-primary);
         border-radius: 3px 0 0 3px;
@@ -203,7 +198,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     background: var(--bg-surface-subtle);
     padding: 4px 8px;
     border-radius: var(--radius-full);
-    font-weight: 600;
+    font-weight: 500;
   }
 }
 
@@ -223,12 +218,9 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
   padding-bottom: var(--safe-bottom);
   background: var(--bg-surface);
   border-top: 1px solid var(--border-color);
-  box-shadow: var(--shadow-nav);
   z-index: 80;
   justify-content: space-around;
   align-items: center;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 
   .mobile-nav-item {
     flex: 1;
@@ -244,7 +236,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     .icon-wrapper {
       position: relative;
       @include flex-center;
-      height: 28px;
+      height: 26px;
     }
 
     .mobile-nav-label {
@@ -254,11 +246,11 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     }
 
     &.active {
-      color: var(--color-primary);
+      color: var(--text-main);
 
       .mobile-active-dot {
         position: absolute;
-        bottom: -2px;
+        bottom: -3px;
         width: 4px;
         height: 4px;
         border-radius: 50%;
