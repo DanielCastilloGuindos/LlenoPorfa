@@ -22,6 +22,7 @@ import {
   X,
   Radio,
   Bell,
+  Coffee,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { usePwaInstall } from '../composables/usePwaInstall';
@@ -421,7 +422,8 @@ const handleInstallPwa = async () => {
         rel="noopener noreferrer"
         class="support-project-btn"
       >
-        <span>☕ Invitar a un café / Colaborar</span>
+        <Coffee :size="16" class="support-icon" />
+        <span>Invitar a un café / Colaborar</span>
       </a>
     </div>
 
@@ -752,6 +754,13 @@ const handleInstallPwa = async () => {
 
 .card-header-between {
   @include flex-between;
+  gap: 16px;
+  width: 100%;
+
+  .card-header-icon {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }
 
 .add-vehicle-btn {
@@ -1090,17 +1099,24 @@ const handleInstallPwa = async () => {
 
 .radar-switch {
   position: relative;
-  width: 52px;
-  height: 30px;
-  border-radius: 9999px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  border-radius: 9999px !important;
   background: var(--bg-surface-subtle);
   border: 1.5px solid var(--border-color);
   cursor: pointer;
-  padding: 2px;
+  padding: 2px 3px !important;
   outline: none;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
 
   &:hover {
     border-color: rgba(16, 185, 129, 0.5);
@@ -1125,10 +1141,13 @@ const handleInstallPwa = async () => {
     display: block;
     width: 22px;
     height: 22px;
+    min-width: 22px;
+    min-height: 22px;
     background: #ffffff;
     border-radius: 50%;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.12);
     transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    flex-shrink: 0;
   }
 }
 

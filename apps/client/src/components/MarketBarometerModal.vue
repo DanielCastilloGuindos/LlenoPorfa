@@ -21,13 +21,56 @@ import { useStations } from '../composables/useStations';
 import { useHaptics } from '../composables/useHaptics';
 import gsap from 'gsap';
 
-const { marketData, isBarometerOpen, closeBarometer, fetchMarketData } = useMarket();
+const { marketData, selectedRange, isBarometerOpen, closeBarometer, fetchMarketData } = useMarket();
 const { stats: stationsStats, fuel: currentFuelFilter } = useStations();
 const { light } = useHaptics();
 
 const modalSheet = ref<HTMLElement | null>(null);
 const selectedFuel = ref<'g95_e5' | 'diesel_a'>('g95_e5');
 const activeTooltipIndex = ref<number | null>(null);
+
+const rangeOptions = [
+  { id: '7d', label: '1S', title: '1 semana' },
+  { id: '1mo', label: '30D', title: '30 días' },
+  { id: '3mo', label: '3M', title: '3 meses' },
+  { id: '6mo', label: '6M', title: '6 meses' },
+  { id: '1y', label: '1A', title: '1 año' },
+  { id: 'max', label: 'Todo', title: 'Siempre' },
+];
+
+const rangeTitle = computed(() => {
+  switch (selectedRange.value) {
+    case '7d':
+      return '1 semana';
+    case '3mo':
+      return '3 meses';
+    case '6mo':
+      return '6 meses';
+    case '1y':
+      return '1 año';
+    case 'max':
+      return 'Histórico';
+    default:
+      return '30 días';
+  }
+});
+
+const handleSelectRange = (rangeId: string) => {
+  if (selectedRange.value === rangeId) return;
+  light();
+  activeTooltipIndex.value = null;
+  const avgG95 = stationsStats.value.avgPrice && (currentFuelFilter.value === 'g95_e5' || currentFuelFilter.value === 'g98_e5')
+    ? stationsStats.value.avgPrice
+    : undefined;
+  const avgDiesel = stationsStats.value.avgPrice && (currentFuelFilter.value === 'diesel_a' || currentFuelFilter.value === 'diesel_premium')
+    ? stationsStats.value.avgPrice
+    : undefined;
+
+  fetchMarketData(avgG95, avgDiesel, rangeId);
+  nextTick(() => {
+    animateChart();
+  });
+};
 
 // Sync fuel with user's current fuel preference on mount
 onMounted(() => {
@@ -284,9 +327,9 @@ const onChartTouch = (e: TouchEvent) => {
 
           <div class="metric-hero-card barrel">
             <div class="metric-top">
-              <span class="metric-label">Barril en Euros (159 Litros)</span>
-              <span class="metric-badge-neutral">
-                {{ marketData.delta_24h_pct >= 0 ? '+' : '' }}{{ marketData.delta_24h_pct }}% hoy
+              <span class="metric-label">Barril en Euros</span>
+              <span class="metric-badge neutral">
+                <span>{{ marketData.delta_24h_pct >= 0 ? '+' : '' }}{{ marketData.delta_24h_pct }}% hoy</span>
               </span>
             </div>
             <div class="metric-main">
@@ -294,7 +337,7 @@ const onChartTouch = (e: TouchEvent) => {
               <span class="metric-unit">€/barril</span>
             </div>
             <div class="metric-sub">
-              <span>Actualizado diariamente con cierre de mercado</span>
+              <span>1 barril = 159L • Cierre diario</span>
             </div>
           </div>
         </div>
@@ -453,18 +496,34 @@ const onChartTouch = (e: TouchEvent) => {
           </div>
         </div>
 
-        <!-- 5. SVG 30-Day Evolution Chart with Interactive Tooltip -->
+        <!-- 5. SVG Evolution Chart with Interactive Tooltip & Timeframe Selector -->
         <div class="chart-section">
           <div class="chart-header">
             <div class="chart-title">
               <Calendar :size="16" />
-              <h4>Evolución del Litro de Crudo (Últimos 30 días)</h4>
+              <h4>Evolución del Litro de Crudo ({{ rangeTitle }})</h4>
             </div>
-            <div class="chart-legend-stats">
-              <span>Mín: <strong>{{ chartStats.min.toFixed(3) }} €</strong></span>
-              <span>•</span>
-              <span>Máx: <strong>{{ chartStats.max.toFixed(3) }} €</strong></span>
+
+            <!-- Timeframe selector pills: 1S, 30D, 3M, 6M, 1A, Todo -->
+            <div class="chart-range-pills">
+              <button
+                v-for="r in rangeOptions"
+                :key="r.id"
+                class="range-pill"
+                :class="{ active: selectedRange === r.id }"
+                @click="handleSelectRange(r.id)"
+                :title="r.title"
+              >
+                {{ r.label }}
+              </button>
             </div>
+          </div>
+
+          <div class="chart-legend-stats">
+            <span>Mín: <strong>{{ chartStats.min.toFixed(3) }} €</strong></span>
+            <span>•</span>
+            <span>Máx: <strong>{{ chartStats.max.toFixed(3) }} €</strong></span>
+            <span v-if="historyPoints.length > 0">• {{ historyPoints.length }} días</span>
           </div>
 
           <div
@@ -585,7 +644,7 @@ const onChartTouch = (e: TouchEvent) => {
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(6px);
-  z-index: 250;
+  z-index: 1200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -732,11 +791,15 @@ const onChartTouch = (e: TouchEvent) => {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: 700;
       font-family: var(--font-mono);
-      padding: 2px 6px;
+      line-height: 1;
+      height: 20px;
+      padding: 0 6px;
       border-radius: var(--radius-full);
+      white-space: nowrap;
+      flex-shrink: 0;
 
       &.rising {
         background: rgba(239, 68, 68, 0.15);
@@ -746,20 +809,11 @@ const onChartTouch = (e: TouchEvent) => {
         background: rgba(16, 185, 129, 0.15);
         color: #10b981;
       }
-      &.stable {
+      &.stable,
+      &.neutral {
         background: var(--bg-surface-subtle);
         color: var(--text-muted);
       }
-    }
-
-    .metric-badge-neutral {
-      font-size: 0.7rem;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      color: var(--text-muted);
-      background: var(--bg-surface-subtle);
-      padding: 2px 6px;
-      border-radius: var(--radius-full);
     }
   }
 
@@ -1053,8 +1107,11 @@ const onChartTouch = (e: TouchEvent) => {
   gap: 10px;
 
   .chart-header {
-    @include flex-between;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
 
     .chart-title {
       display: flex;
@@ -1068,16 +1125,52 @@ const onChartTouch = (e: TouchEvent) => {
       }
     }
 
-    .chart-legend-stats {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      display: flex;
+    .chart-range-pills {
+      display: inline-flex;
       align-items: center;
-      gap: 5px;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      padding: 2px;
+      gap: 2px;
 
-      strong {
-        color: #f59e0b;
+      .range-pill {
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        padding: 2px 7px;
+        min-height: unset;
+        min-width: unset;
+        height: 22px;
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+          color: var(--text-main);
+        }
+
+        &.active {
+          background: #f59e0b;
+          color: #ffffff;
+          box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+        }
       }
+    }
+  }
+
+  .chart-legend-stats {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    strong {
+      color: #f59e0b;
     }
   }
 

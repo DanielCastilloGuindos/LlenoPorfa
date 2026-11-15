@@ -32,9 +32,10 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
 
     let avg_g95 = query_params.get("avg_g95").and_then(|v| v.parse::<f64>().ok());
     let avg_diesel = query_params.get("avg_diesel").and_then(|v| v.parse::<f64>().ok());
+    let range = query_params.get("range").map(|s| s.as_str()).unwrap_or("1mo");
 
     // 4. In-memory cached or Yahoo Finance fetch
-    let points = match market::get_cached_or_fetch_market_points().await {
+    let points = match market::get_cached_or_fetch_market_points_for_range(range).await {
         Ok(pts) => pts,
         Err(err) => return Ok(err.into_response()),
     };

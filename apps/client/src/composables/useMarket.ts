@@ -1,8 +1,37 @@
 import { ref, computed } from 'vue';
-import type { MarketApiResponse } from '../types';
+import type { MarketApiResponse, DailyMarketPoint } from '../types';
 import { apiUrl } from '../utils/apiBase';
 
 const STORAGE_KEY = 'llenoporfa_market_cache_v1';
+
+export function generateBaselinePoints(count: number = 30): DailyMarketPoint[] {
+  const points: DailyMarketPoint[] = [];
+  const now = Math.floor(Date.now() / 1000);
+  const baseBrent = 82.5;
+  const baseFx = 1.085;
+  const litPerBbl = 158.987;
+
+  for (let i = count - 1; i >= 0; i--) {
+    const ts = now - i * 86400;
+    const d = new Date(ts * 1000);
+    const dateStr = d.toISOString().split('T')[0];
+    const wave = Math.sin(i / 3.5) * 1.8 + Math.cos(i / 6.0) * 1.0;
+    const brent = Math.round((baseBrent - (i * 0.04) + wave) * 100) / 100;
+    const fx = Math.round((baseFx + Math.sin(i / 4.5) * 0.007) * 10000) / 10000;
+    const bblEur = Math.round((brent / fx) * 100) / 100;
+    const litEur = Math.round((bblEur / litPerBbl) * 1000) / 1000;
+
+    points.push({
+      date: dateStr,
+      timestamp: ts,
+      brent_usd: brent,
+      eur_usd: fx,
+      crude_eur_barrel: bblEur,
+      crude_eur_liter: litEur,
+    });
+  }
+  return points;
+}
 
 export const DEFAULT_MARKET_BASELINE: MarketApiResponse = {
   updated_at: Math.floor(Date.now() / 1000),
@@ -14,32 +43,7 @@ export const DEFAULT_MARKET_BASELINE: MarketApiResponse = {
   delta_7d_pct: 1.2,
   trend: 'stable',
   trend_message: 'El precio del crudo se mantiene estable en los mercados internacionales.',
-  history: [
-    {
-      date: '2026-11-08',
-      timestamp: Math.floor(Date.now() / 1000) - 86400 * 7,
-      brent_usd: 81.5,
-      eur_usd: 1.082,
-      crude_eur_barrel: 75.32,
-      crude_eur_liter: 0.474,
-    },
-    {
-      date: '2026-11-14',
-      timestamp: Math.floor(Date.now() / 1000) - 86400,
-      brent_usd: 82.1,
-      eur_usd: 1.084,
-      crude_eur_barrel: 75.74,
-      crude_eur_liter: 0.476,
-    },
-    {
-      date: '2026-11-15',
-      timestamp: Math.floor(Date.now() / 1000),
-      brent_usd: 82.5,
-      eur_usd: 1.085,
-      crude_eur_barrel: 76.04,
-      crude_eur_liter: 0.478,
-    },
-  ],
+  history: generateBaselinePoints(30),
   fuels: {
     g95_e5: {
       name: 'Gasolina 95 E5',
@@ -79,6 +83,7 @@ export const DEFAULT_MARKET_BASELINE: MarketApiResponse = {
 };
 
 const marketData = ref<MarketApiResponse>(DEFAULT_MARKET_BASELINE);
+const selectedRange = ref<string>('1mo');
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 const isBarometerOpen = ref<boolean>(false);
@@ -90,6 +95,9 @@ if (typeof window !== 'undefined') {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.crude_eur_liter) {
+        if (!parsed.history || parsed.history.length < 5) {
+          parsed.history = generateBaselinePoints(30);
+        }
         marketData.value = parsed;
       }
     }
@@ -99,7 +107,10 @@ if (typeof window !== 'undefined') {
 }
 
 export function useMarket() {
-  const fetchMarketData = async (avgG95?: number, avgDiesel?: number) => {
+  const fetchMarketData = async (avgG95?: number, avgDiesel?: number, range?: string) => {
+    if (range) {
+      selectedRange.value = range;
+    }
     loading.value = true;
     error.value = null;
 
@@ -111,6 +122,7 @@ export function useMarket() {
       if (avgDiesel && avgDiesel > 0.5) {
         params.append('avg_diesel', avgDiesel.toFixed(3));
       }
+      params.append('range', selectedRange.value);
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(apiUrl(`/api/market${queryString}`));
@@ -120,6 +132,10 @@ export function useMarket() {
       }
 
       const data: MarketApiResponse = await res.json();
+      if (!data.history || data.history.length === 0) {
+        const count = selectedRange.value === '7d' ? 7 : selectedRange.value === '3mo' ? 90 : selectedRange.value === '6mo' ? 180 : selectedRange.value === '1y' ? 365 : 30;
+        data.history = generateBaselinePoints(count);
+      }
       marketData.value = data;
 
       if (typeof window !== 'undefined') {
@@ -130,6 +146,14 @@ export function useMarket() {
     } catch (err: any) {
       console.warn('Failed to fetch market data:', err);
       error.value = err.message || 'Error al obtener datos del mercado';
+      // If offline/fallback, adjust history points length to match range
+      if (marketData.value) {
+        const count = selectedRange.value === '7d' ? 7 : selectedRange.value === '3mo' ? 90 : selectedRange.value === '6mo' ? 180 : selectedRange.value === '1y' ? 365 : 30;
+        marketData.value = {
+          ...marketData.value,
+          history: generateBaselinePoints(count),
+        };
+      }
     } finally {
       loading.value = false;
     }
@@ -157,6 +181,7 @@ export function useMarket() {
 
   return {
     marketData,
+    selectedRange,
     loading,
     error,
     isBarometerOpen,

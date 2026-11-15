@@ -446,10 +446,17 @@ watch(
           </div>
 
           <div class="breakdown-pill">
-            <span class="pill-dot taxes"></span>
-            <span class="pill-label">Impuestos:</span>
-            <strong>{{ (stationBreakdown.ieh + stationBreakdown.iva).toFixed(2) }}€</strong>
-            <small>{{ (stationBreakdown.iehPct + stationBreakdown.ivaPct).toFixed(1) }}%</small>
+            <span class="pill-dot ieh"></span>
+            <span class="pill-label">IEH:</span>
+            <strong>{{ stationBreakdown.ieh.toFixed(2) }}€</strong>
+            <small>{{ stationBreakdown.iehPct }}%</small>
+          </div>
+
+          <div class="breakdown-pill">
+            <span class="pill-dot iva"></span>
+            <span class="pill-label">IVA 21%:</span>
+            <strong>{{ stationBreakdown.iva.toFixed(2) }}€</strong>
+            <small>{{ stationBreakdown.ivaPct }}%</small>
           </div>
         </div>
 
@@ -805,7 +812,8 @@ watch(
 
         &.crude { background: #f59e0b; }
         &.margin { background: #0284c7; }
-        &.taxes { background: #8b5cf6; }
+        &.ieh { background: #8b5cf6; }
+        &.iva { background: #ef4444; }
       }
 
       strong {

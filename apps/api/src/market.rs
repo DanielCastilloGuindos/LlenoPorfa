@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
@@ -5,8 +6,6 @@ use tokio::sync::RwLock;
 
 use crate::error::ApiError;
 
-const BRENT_URL: &str = "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1mo";
-const EURUSD_URL: &str = "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1mo";
 const CACHE_TTL_SECS: u64 = 3600; // 1 hour
 const LITERS_PER_BARREL: f64 = 158.987;
 
@@ -31,10 +30,10 @@ struct CachedMarketData {
     fetched_at: Instant,
 }
 
-static IN_MEMORY_MARKET_CACHE: OnceLock<RwLock<Option<CachedMarketData>>> = OnceLock::new();
+static IN_MEMORY_MARKET_CACHE: OnceLock<RwLock<HashMap<String, CachedMarketData>>> = OnceLock::new();
 
-fn get_market_cache() -> &'static RwLock<Option<CachedMarketData>> {
-    IN_MEMORY_MARKET_CACHE.get_or_init(|| RwLock::new(None))
+fn get_market_cache() -> &'static RwLock<HashMap<String, CachedMarketData>> {
+    IN_MEMORY_MARKET_CACHE.get_or_init(|| RwLock::new(HashMap::new()))
 }
 
 #[derive(Debug, Deserialize)]
@@ -193,30 +192,72 @@ async fn fetch_yahoo_series(client: &reqwest::Client, url: &str) -> Result<Vec<(
 }
 
 pub async fn get_cached_or_fetch_market_points() -> Result<Vec<DailyMarketPoint>, ApiError> {
+    get_cached_or_fetch_market_points_for_range("1mo").await
+}
+
+pub async fn get_cached_or_fetch_market_points_for_range(range_param: &str) -> Result<Vec<DailyMarketPoint>, ApiError> {
+    let normalized_range = match range_param {
+        "7d" | "1w" => "7d",
+        "1mo" | "30d" => "1mo",
+        "3mo" | "3m" => "3mo",
+        "6mo" | "6m" => "6mo",
+        "1y" | "1a" => "1y",
+        "max" | "all" => "max",
+        _ => "1mo",
+    };
+
     let cache = get_market_cache();
 
     // 1. Check read lock
     {
         let reader = cache.read().await;
-        if let Some(cached) = &*reader {
+        if let Some(cached) = reader.get(normalized_range) {
             if cached.fetched_at.elapsed() < Duration::from_secs(CACHE_TTL_SECS) && !cached.points.is_empty() {
                 return Ok(cached.points.clone());
             }
         }
     }
 
-    // 2. Fetch fresh data in parallel
+    // 2. Select appropriate Yahoo chart query for the range
+    let (brent_url, fx_url) = match normalized_range {
+        "7d" => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=7d",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=7d",
+        ),
+        "3mo" => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=3mo",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=3mo",
+        ),
+        "6mo" => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=6mo",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=6mo",
+        ),
+        "1y" => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1y",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1y",
+        ),
+        "max" => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1wk&range=5y",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1wk&range=5y",
+        ),
+        _ => (
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1mo",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1mo",
+        ),
+    };
+
+    // 3. Fetch fresh data in parallel
     let client = build_market_http_client()?;
 
     let (brent_res, fx_res) = tokio::join!(
-        fetch_yahoo_series(&client, BRENT_URL),
-        fetch_yahoo_series(&client, EURUSD_URL)
+        fetch_yahoo_series(&client, brent_url),
+        fetch_yahoo_series(&client, fx_url)
     );
 
     let brent_series = brent_res?;
     let fx_series = fx_res?;
 
-    // 3. Pair each Brent day with closest EUR/USD exchange rate
+    // 4. Pair each Brent day with closest EUR/USD exchange rate
     let mut combined: Vec<DailyMarketPoint> = Vec::new();
 
     for (brent_ts, brent_price) in brent_series {
@@ -249,13 +290,16 @@ pub async fn get_cached_or_fetch_market_points() -> Result<Vec<DailyMarketPoint>
     // Sort chronologically ascending
     combined.sort_by_key(|p| p.timestamp);
 
-    // 4. Update in-memory cache
+    // 5. Update in-memory cache
     {
         let mut writer = cache.write().await;
-        *writer = Some(CachedMarketData {
-            points: combined.clone(),
-            fetched_at: Instant::now(),
-        });
+        writer.insert(
+            normalized_range.to_string(),
+            CachedMarketData {
+                points: combined.clone(),
+                fetched_at: Instant::now(),
+            },
+        );
     }
 
     Ok(combined)
