@@ -12,9 +12,16 @@
   z-index: 1;
 }
 
-// 100% Free OpenStreetMap dark mode filter (NO API KEY EVER)
+// Free OpenStreetMap tile styling
+// 1. Dark Mode: Neutral Asphalt / Charcoal (#0A0A0B) without blue tint
 [data-theme="dark"] .leaflet-tile-pane {
-  filter: brightness(0.65) invert(1) contrast(2.6) hue-rotate(200deg) saturate(0.35) brightness(0.75);
+  filter: invert(1) grayscale(1) brightness(0.72) contrast(1.35);
+}
+
+// 2. Light Mode: Clean Pearl Gray (#F5F5F7) Apple Maps / Uber style
+[data-theme="light"] .leaflet-tile-pane,
+:root:not([data-theme="dark"]) .leaflet-tile-pane {
+  filter: grayscale(0.92) contrast(1.06) brightness(1.02);
 }
 
 .leaflet-control-zoom {
@@ -53,7 +60,154 @@
   background: var(--bg-surface) !important;
 }
 
-// Custom map markers
+// High-contrast Airbnb-style price pins (Anti-AI Slop)
+.airbnb-price-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  font-variant-numeric: tabular-nums;
+
+  .price-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  // 1. Precio Barato (Top Ahorro): Verde sólido con texto blanco puro
+  &.pin-low {
+    background: #15803d;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 3px 8px rgba(21, 128, 61, 0.35);
+
+    [data-theme="dark"] & {
+      background: #16a34a;
+      box-shadow: 0 3px 8px rgba(22, 165, 74, 0.4);
+    }
+
+    .price-dot {
+      display: none;
+    }
+  }
+
+  // 2. Precio Normal (Media): Píldora neutra con punto ámbar (#F59E0B)
+  &.pin-medium {
+    background: #ffffff;
+    color: #09090b;
+    border: 1px solid #e4e4e7;
+
+    [data-theme="dark"] & {
+      background: #18181b;
+      color: #fafafa;
+      border: 1px solid #27272a;
+    }
+
+    .price-dot {
+      background: #f59e0b;
+    }
+  }
+
+  // 3. Precio Caro: Píldora neutra semitransparente con punto rojo (#EF4444) y texto atenuado
+  &.pin-high {
+    background: rgba(255, 255, 255, 0.88);
+    color: rgba(9, 9, 11, 0.7);
+    border: 1px solid rgba(228, 228, 231, 0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    [data-theme="dark"] & {
+      background: rgba(24, 24, 27, 0.75);
+      color: rgba(250, 250, 250, 0.65);
+      border: 1px solid rgba(39, 39, 42, 0.6);
+    }
+
+    .price-dot {
+      background: #ef4444;
+      opacity: 0.85;
+    }
+  }
+
+  // 4. Pin Seleccionado: Escala 1.15x con contraste invertido
+  &.pin-selected {
+    transform: scale(1.15);
+    z-index: 1000 !important;
+    background: #09090b !important;
+    color: #ffffff !important;
+    border: 1.5px solid #09090b !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+
+    [data-theme="dark"] & {
+      background: #ffffff !important;
+      color: #09090b !important;
+      border: 1.5px solid #ffffff !important;
+      box-shadow: 0 6px 18px rgba(255, 255, 255, 0.25) !important;
+    }
+
+    .price-dot {
+      display: none;
+    }
+  }
+}
+
+// Clean Circular Clusters
+.clean-cluster-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #09090b;
+  border: 1.5px solid #e4e4e7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  [data-theme="dark"] & {
+    background: #18181b;
+    color: #fafafa;
+    border: 1.5px solid #27272a;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+
+  .cluster-count {
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-muted);
+  }
+
+  .cluster-price {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 2px;
+    color: var(--savings-green);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Custom map markers (fallback/minimap)
 .custom-price-pin {
   display: flex;
   align-items: center;

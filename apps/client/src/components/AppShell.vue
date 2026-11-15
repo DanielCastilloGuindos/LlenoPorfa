@@ -462,12 +462,14 @@ onMounted(async () => {
     }
 
     .map-mobile-search-controls {
-      flex-shrink: 0;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-color);
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
+      position: absolute;
+      top: calc(var(--safe-top) + 12px);
+      left: 12px;
+      right: 64px;
+      z-index: 400;
+      pointer-events: auto;
+      background: transparent;
+      border: none;
     }
 
     .map-view-body {

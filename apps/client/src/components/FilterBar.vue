@@ -246,6 +246,35 @@ const handleOpen24hToggle = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  &.only-fuels-mode {
+    background: transparent;
+    border-bottom: none;
+    padding: 0;
+
+    .fuel-pills-scroll {
+      gap: 6px;
+      padding: 0;
+    }
+
+    .fuel-pill {
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      min-height: 38px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+
+      &.active {
+        background: var(--btn-cta-bg);
+        border-color: var(--btn-cta-bg);
+        color: var(--btn-cta-text);
+        font-weight: 700;
+      }
+    }
+  }
 }
 
 .fuel-pills-scroll {

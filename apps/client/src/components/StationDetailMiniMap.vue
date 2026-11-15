@@ -66,12 +66,12 @@ const renderMarkers = () => {
   const stationIcon = L.divIcon({
     className: 'pin-container',
     html: `
-      <div class="custom-price-pin pin-${tier} pin-selected">
-        <span>${priceStr} €</span>
+      <div class="airbnb-price-pin pin-${tier} pin-selected">
+        <span class="price-val tabular-nums">${priceStr} €</span>
       </div>
     `,
-    iconSize: [64, 26],
-    iconAnchor: [32, 13],
+    iconSize: [74, 28],
+    iconAnchor: [37, 14],
   });
 
   const stCoords: [number, number] = [props.station.latitude, props.station.longitude];
