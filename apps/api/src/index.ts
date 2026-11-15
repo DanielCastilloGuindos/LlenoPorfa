@@ -91,7 +91,7 @@ const server = serve({
         return await handleRegisterEvent(req);
       }
       if (pathname === '/api/register/stats' && method === 'GET') {
-        return await handleRegisterStats(url);
+        return await handleRegisterStats(req, url);
       }
 
       // Sync & Admin routes

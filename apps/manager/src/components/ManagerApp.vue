@@ -115,7 +115,7 @@ const handleLogin = async () => {
     });
 
     if (res.status === 401) {
-      authError.value = 'Clave de acceso incorrecta. Verificá tu MANAGER_SECRET.';
+      authError.value = 'Clave de acceso incorrecta. Verifica tu MANAGER_SECRET.';
       return;
     }
 
@@ -125,6 +125,10 @@ const handleLogin = async () => {
     }
 
     const data: StatsResponse = await res.json();
+    if (!data || typeof data !== 'object' || !data.funnel || data.unique_users === undefined) {
+      authError.value = 'Respuesta de métricas no válida o incompleta del servidor.';
+      return;
+    }
     token.value = candidate;
     sessionStorage.setItem(STORAGE_TOKEN_KEY, candidate);
     stats.value = data;
@@ -161,8 +165,11 @@ const fetchStats = async () => {
     }
 
     if (res.ok) {
-      stats.value = await res.json();
-      animateDashboard();
+      const data: StatsResponse = await res.json();
+      if (data && typeof data === 'object' && data.funnel && data.unique_users !== undefined) {
+        stats.value = data;
+        animateDashboard();
+      }
     }
   } catch (e) {
     console.error('Error fetching manager stats', e);
@@ -204,13 +211,13 @@ const chartPadTop = 20;
 const chartPadBottom = 30;
 
 const dailyMax = computed(() => {
-  if (!stats.value || stats.value.daily_traffic.length === 0) return 300;
+  if (!stats.value?.daily_traffic || stats.value.daily_traffic.length === 0) return 300;
   const vals = stats.value.daily_traffic.map((d) => d.sessions);
   return Math.max(...vals, 100);
 });
 
 const chartPoints = computed(() => {
-  if (!stats.value || stats.value.daily_traffic.length < 2) return [];
+  if (!stats.value?.daily_traffic || stats.value.daily_traffic.length < 2) return [];
   const list = stats.value.daily_traffic;
   const max = dailyMax.value;
   const availW = chartWidth - chartPadX * 2;
@@ -263,8 +270,9 @@ const activeChartTooltip = computed(() => {
               <input
                 v-model="inputSecret"
                 type="password"
+                autocomplete="current-password"
                 required
-                placeholder="Ingresá la clave de acceso..."
+                placeholder="Introduce la clave de acceso..."
                 class="login-input"
                 autofocus
               />
@@ -346,7 +354,7 @@ const activeChartTooltip = computed(() => {
             </div>
             <div class="kpi-body">
               <span class="kpi-title">Usuarios Activos</span>
-              <strong class="kpi-num">{{ stats.unique_users.toLocaleString() }}</strong>
+              <strong class="kpi-num">{{ (stats.unique_users ?? 0).toLocaleString() }}</strong>
               <span class="kpi-sub">Dispositivos únicos verificados</span>
             </div>
           </div>
@@ -357,8 +365,8 @@ const activeChartTooltip = computed(() => {
             </div>
             <div class="kpi-body">
               <span class="kpi-title">Sesiones Totales</span>
-              <strong class="kpi-num">{{ stats.total_sessions.toLocaleString() }}</strong>
-              <span class="kpi-sub highlight-pwa">📱 {{ stats.pwa_percentage }}% en PWA instalada</span>
+              <strong class="kpi-num">{{ (stats.total_sessions ?? 0).toLocaleString() }}</strong>
+              <span class="kpi-sub highlight-pwa">📱 {{ stats.pwa_percentage ?? 0 }}% en PWA instalada</span>
             </div>
           </div>
 
@@ -368,7 +376,7 @@ const activeChartTooltip = computed(() => {
             </div>
             <div class="kpi-body">
               <span class="kpi-title">Intención de Ruta</span>
-              <strong class="kpi-num">{{ stats.funnel.search_to_nav_rate }}%</strong>
+              <strong class="kpi-num">{{ stats.funnel?.search_to_nav_rate ?? 0 }}%</strong>
               <span class="kpi-sub">De búsquedas a abrir Maps/Waze</span>
             </div>
           </div>
@@ -379,14 +387,14 @@ const activeChartTooltip = computed(() => {
             </div>
             <div class="kpi-body">
               <span class="kpi-title">Visitas Físicas Confirmadas</span>
-              <strong class="kpi-num text-primary">{{ stats.funnel.confirmed_visits.toLocaleString() }}</strong>
+              <strong class="kpi-num text-primary">{{ (stats.funnel?.confirmed_visits ?? 0).toLocaleString() }}</strong>
               <span class="kpi-sub">Llegada a surtidor (Haversine &lt;= 120m)</span>
             </div>
           </div>
         </section>
 
         <!-- Conversion Funnel Section -->
-        <section class="dashboard-section funnel-section">
+        <section v-if="stats.funnel" class="dashboard-section funnel-section">
           <div class="section-heading">
             <div class="heading-title">
               <TrendingUp :size="18" class="text-primary" />
@@ -399,7 +407,7 @@ const activeChartTooltip = computed(() => {
             <div class="funnel-step">
               <div class="step-meta">
                 <span class="step-label">1. Aperturas de App</span>
-                <strong>{{ stats.funnel.app_opens.toLocaleString() }}</strong>
+                <strong>{{ (stats.funnel.app_opens ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div class="funnel-bar-fill f1" style="width: 100%;"></div>
@@ -410,71 +418,71 @@ const activeChartTooltip = computed(() => {
             <div class="funnel-step">
               <div class="step-meta">
                 <span class="step-label">2. Búsquedas y Filtros</span>
-                <strong>{{ stats.funnel.searches.toLocaleString() }}</strong>
+                <strong>{{ (stats.funnel.searches ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div
                   class="funnel-bar-fill f2"
-                  :style="{ width: `${(stats.funnel.searches / stats.funnel.app_opens) * 100}%` }"
+                  :style="{ width: `${stats.funnel.app_opens ? (stats.funnel.searches / stats.funnel.app_opens) * 100 : 0}%` }"
                 ></div>
               </div>
-              <span class="step-pct">{{ ((stats.funnel.searches / stats.funnel.app_opens) * 100).toFixed(1) }}%</span>
+              <span class="step-pct">{{ stats.funnel.app_opens ? ((stats.funnel.searches / stats.funnel.app_opens) * 100).toFixed(1) : 0 }}%</span>
             </div>
 
             <div class="funnel-step">
               <div class="step-meta">
                 <span class="step-label">3. Ficha de Gasolinera Abierta</span>
-                <strong>{{ stats.funnel.details_viewed.toLocaleString() }}</strong>
+                <strong>{{ (stats.funnel.details_viewed ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div
                   class="funnel-bar-fill f3"
-                  :style="{ width: `${(stats.funnel.details_viewed / stats.funnel.app_opens) * 100}%` }"
+                  :style="{ width: `${stats.funnel.app_opens ? (stats.funnel.details_viewed / stats.funnel.app_opens) * 100 : 0}%` }"
                 ></div>
               </div>
-              <span class="step-pct">{{ ((stats.funnel.details_viewed / stats.funnel.app_opens) * 100).toFixed(1) }}%</span>
+              <span class="step-pct">{{ stats.funnel.app_opens ? ((stats.funnel.details_viewed / stats.funnel.app_opens) * 100).toFixed(1) : 0 }}%</span>
             </div>
 
             <div class="funnel-step">
               <div class="step-meta">
                 <span class="step-label">4. Clic en "Cómo llegar" (GPS)</span>
-                <strong>{{ stats.funnel.navigations_started.toLocaleString() }}</strong>
+                <strong>{{ (stats.funnel.navigations_started ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div
                   class="funnel-bar-fill f4"
-                  :style="{ width: `${(stats.funnel.navigations_started / stats.funnel.app_opens) * 100}%` }"
+                  :style="{ width: `${stats.funnel.app_opens ? (stats.funnel.navigations_started / stats.funnel.app_opens) * 100 : 0}%` }"
                 ></div>
               </div>
-              <span class="step-pct">{{ ((stats.funnel.navigations_started / stats.funnel.app_opens) * 100).toFixed(1) }}%</span>
+              <span class="step-pct">{{ stats.funnel.app_opens ? ((stats.funnel.navigations_started / stats.funnel.app_opens) * 100).toFixed(1) : 0 }}%</span>
             </div>
 
             <div class="funnel-step highlight">
               <div class="step-meta">
                 <span class="step-label">5. Llegada Física al Surtidor</span>
-                <strong class="text-primary">{{ stats.funnel.confirmed_visits.toLocaleString() }}</strong>
+                <strong class="text-primary">{{ (stats.funnel.confirmed_visits ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div
                   class="funnel-bar-fill f5"
-                  :style="{ width: `${(stats.funnel.confirmed_visits / stats.funnel.app_opens) * 100}%` }"
+                  :style="{ width: `${stats.funnel.app_opens ? (stats.funnel.confirmed_visits / stats.funnel.app_opens) * 100 : 0}%` }"
                 ></div>
               </div>
-              <span class="step-pct">{{ ((stats.funnel.confirmed_visits / stats.funnel.app_opens) * 100).toFixed(1) }}%</span>
+              <span class="step-pct">{{ stats.funnel.app_opens ? ((stats.funnel.confirmed_visits / stats.funnel.app_opens) * 100).toFixed(1) : 0 }}%</span>
             </div>
 
             <div class="funnel-step">
               <div class="step-meta">
                 <span class="step-label">6. Repostaje Registrado</span>
-                <strong>{{ stats.funnel.refuels_logged.toLocaleString() }}</strong>
+                <strong>{{ (stats.funnel.refuels_logged ?? 0).toLocaleString() }}</strong>
               </div>
               <div class="funnel-bar-track">
                 <div
                   class="funnel-bar-fill f6"
-                  :style="{ width: `${(stats.funnel.refuels_logged / stats.funnel.app_opens) * 100}%` }"
+                  :style="{ width: `${stats.funnel.app_opens ? (stats.funnel.refuels_logged / stats.funnel.app_opens) * 100 : 0}%` }"
                 ></div>
               </div>
-              <span class="step-pct">{{ ((stats.funnel.refuels_logged / stats.funnel.app_opens) * 100).toFixed(1) }}%</span>
+              <span class="step-pct">{{ stats.funnel.app_opens ? ((stats.funnel.refuels_logged / stats.funnel.app_opens) * 100).toFixed(1) : 0 }}%</span>
             </div>
           </div>
         </section>
@@ -603,7 +611,7 @@ const activeChartTooltip = computed(() => {
                     </td>
                     <td>{{ st.province }}</td>
                     <td class="text-right font-mono font-bold text-primary">
-                      {{ st.visits_count.toLocaleString() }}
+                      {{ (st.visits_count ?? 0).toLocaleString() }}
                     </td>
                   </tr>
                 </tbody>
