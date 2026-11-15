@@ -238,6 +238,7 @@ watch(
         <div class="handle"></div>
       </div>
 
+      <!-- Pinned Header: Title, address and action buttons stay visible when scrolling -->
       <div class="sheet-header">
         <div class="header-main">
           <div class="brand-row">
@@ -268,11 +269,13 @@ watch(
         </div>
       </div>
 
-      <!-- Quick Action: Registrar repostaje aquí -->
-      <button class="record-refuel-btn" @click="handleRecordRefuel">
-        <ReceiptText :size="18" />
-        <span>Registrar repostaje aquí</span>
-      </button>
+      <!-- Scrollable Sheet Content -->
+      <div class="sheet-content">
+        <!-- Quick Action: Registrar repostaje aquí -->
+        <button class="record-refuel-btn" @click="handleRecordRefuel">
+          <ReceiptText :size="18" />
+          <span>Registrar repostaje aquí</span>
+        </button>
 
       <!-- Tank savings highlight box -->
       <div v-if="savings > 0.5" class="savings-banner">
@@ -473,6 +476,7 @@ watch(
           </span>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -482,19 +486,15 @@ watch(
 
 .modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
   z-index: 600;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 
   @include desktop {
-    bottom: 0;
     align-items: center;
     padding: 24px;
   }
@@ -502,30 +502,29 @@ watch(
 
 .detail-sheet {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  border-top: 1px solid var(--border-color);
-  box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 560px;
-  max-height: calc(100dvh - var(--bottom-nav-height) - var(--safe-bottom) - 30px);
-  overflow-y: auto;
-  padding: 14px 20px 24px;
+  max-width: 640px;
+  max-height: 92dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  overflow: hidden;
   touch-action: pan-y;
 
   @include desktop {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
     max-height: 88dvh;
   }
 }
 
 .drag-handle-bar {
+  width: 100%;
+  padding: 10px 0 4px;
   display: flex;
   justify-content: center;
-  padding-bottom: 4px;
+  flex-shrink: 0;
 
   @include desktop {
     display: none;
@@ -533,19 +532,24 @@ watch(
 
   .handle {
     width: 40px;
-    height: 5px;
-    border-radius: 5px;
+    height: 4px;
+    border-radius: var(--radius-full);
     background: var(--border-color);
   }
 }
 
 .sheet-header {
+  padding: 14px 20px;
   @include flex-between;
-  align-items: flex-start;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: var(--bg-surface);
   gap: 12px;
 
   .header-main {
     flex: 1;
+    min-width: 0;
 
     .brand-row {
       display: flex;
@@ -556,6 +560,7 @@ watch(
         font-size: 1.25rem;
         font-weight: 800;
         color: var(--text-main);
+        @include truncate;
       }
 
       .tag-24h {
@@ -565,6 +570,7 @@ watch(
         color: var(--tier-low);
         padding: 2px 6px;
         border-radius: var(--radius-sm);
+        white-space: nowrap;
       }
     }
 
@@ -575,19 +581,21 @@ watch(
       font-size: 0.8rem;
       color: var(--text-muted);
       margin-top: 4px;
+      @include truncate;
     }
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    flex-shrink: 0;
 
     .action-btn {
-      width: 44px; // 44x44px minimum touch area
-      height: 44px;
-      min-width: 44px;
-      min-height: 44px;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
       border-radius: var(--radius-full);
       background: var(--bg-surface-subtle);
       border: 1px solid var(--border-color);
@@ -597,7 +605,7 @@ watch(
 
       &:hover {
         color: var(--text-main);
-        background: var(--border-color);
+        background: var(--bg-surface);
       }
 
       &.fav-btn.active {
@@ -607,6 +615,16 @@ watch(
       }
     }
   }
+}
+
+.sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .record-refuel-btn {
