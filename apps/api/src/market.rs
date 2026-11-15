@@ -196,13 +196,13 @@ pub async fn get_cached_or_fetch_market_points() -> Result<Vec<DailyMarketPoint>
 }
 
 pub async fn get_cached_or_fetch_market_points_for_range(range_param: &str) -> Result<Vec<DailyMarketPoint>, ApiError> {
-    let normalized_range = match range_param {
-        "7d" | "1w" => "7d",
+    let normalized_range = match range_param.to_lowercase().as_str() {
+        "7d" | "1w" | "1s" => "7d",
         "1mo" | "30d" => "1mo",
         "3mo" | "3m" => "3mo",
         "6mo" | "6m" => "6mo",
         "1y" | "1a" => "1y",
-        "max" | "all" => "max",
+        "max" | "all" | "todo" | "siempre" => "max",
         _ => "1mo",
     };
 
@@ -237,8 +237,8 @@ pub async fn get_cached_or_fetch_market_points_for_range(range_param: &str) -> R
             "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=1y",
         ),
         "max" => (
-            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1wk&range=5y",
-            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1wk&range=5y",
+            "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=5y",
+            "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1d&range=5y",
         ),
         _ => (
             "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1mo",

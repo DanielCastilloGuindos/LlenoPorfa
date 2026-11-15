@@ -580,6 +580,7 @@ const onChartTouch = (e: TouchEvent) => {
 
                 <!-- Visible point dot -->
                 <circle
+                  v-if="chartPoints.length <= 40 || activeTooltipIndex === idx"
                   :cx="pt.x"
                   :cy="pt.y"
                   :r="activeTooltipIndex === idx ? 6 : 3"

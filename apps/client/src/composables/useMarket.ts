@@ -4,6 +4,33 @@ import { apiUrl } from '../utils/apiBase';
 
 const STORAGE_KEY = 'llenoporfa_market_cache_v1';
 
+export function getCountForRange(range: string): number {
+  switch (range.toLowerCase()) {
+    case '7d':
+    case '1w':
+    case '1s':
+      return 7;
+    case '3mo':
+    case '3m':
+      return 90;
+    case '6mo':
+    case '6m':
+      return 180;
+    case '1y':
+    case '1a':
+      return 365;
+    case 'max':
+    case 'all':
+    case 'todo':
+    case 'siempre':
+      return 730;
+    case '1mo':
+    case '30d':
+    default:
+      return 30;
+  }
+}
+
 export function generateBaselinePoints(count: number = 30): DailyMarketPoint[] {
   const points: DailyMarketPoint[] = [];
   const now = Math.floor(Date.now() / 1000);
@@ -88,10 +115,12 @@ const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 const isBarometerOpen = ref<boolean>(false);
 
+const getStorageKey = (range: string = '1mo') => `${STORAGE_KEY}_${range}`;
+
 // Immediate load from local cache if available
 if (typeof window !== 'undefined') {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey('1mo')) || localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.crude_eur_liter) {
@@ -108,11 +137,23 @@ if (typeof window !== 'undefined') {
 
 export function useMarket() {
   const fetchMarketData = async (avgG95?: number, avgDiesel?: number, range?: string) => {
-    if (range) {
-      selectedRange.value = range;
-    }
+    const targetRange = range || selectedRange.value;
+    selectedRange.value = targetRange;
     loading.value = true;
     error.value = null;
+
+    // Check if we have this specific range cached locally for instant display
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedRaw = localStorage.getItem(getStorageKey(targetRange));
+        if (cachedRaw) {
+          const cachedParsed = JSON.parse(cachedRaw);
+          if (cachedParsed && cachedParsed.history && cachedParsed.history.length > 0) {
+            marketData.value = cachedParsed;
+          }
+        }
+      } catch (_) {}
+    }
 
     try {
       const params = new URLSearchParams();
@@ -122,7 +163,7 @@ export function useMarket() {
       if (avgDiesel && avgDiesel > 0.5) {
         params.append('avg_diesel', avgDiesel.toFixed(3));
       }
-      params.append('range', selectedRange.value);
+      params.append('range', targetRange);
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(apiUrl(`/api/market${queryString}`));
@@ -133,25 +174,24 @@ export function useMarket() {
 
       const data: MarketApiResponse = await res.json();
       if (!data.history || data.history.length === 0) {
-        const count = selectedRange.value === '7d' ? 7 : selectedRange.value === '3mo' ? 90 : selectedRange.value === '6mo' ? 180 : selectedRange.value === '1y' ? 365 : 30;
-        data.history = generateBaselinePoints(count);
+        data.history = generateBaselinePoints(getCountForRange(targetRange));
       }
       marketData.value = data;
 
       if (typeof window !== 'undefined') {
         try {
+          localStorage.setItem(getStorageKey(targetRange), JSON.stringify(data));
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } catch (e) {}
       }
     } catch (err: any) {
       console.warn('Failed to fetch market data:', err);
       error.value = err.message || 'Error al obtener datos del mercado';
-      // If offline/fallback, adjust history points length to match range
+      // If offline/fallback, adjust history points length to match range accurately
       if (marketData.value) {
-        const count = selectedRange.value === '7d' ? 7 : selectedRange.value === '3mo' ? 90 : selectedRange.value === '6mo' ? 180 : selectedRange.value === '1y' ? 365 : 30;
         marketData.value = {
           ...marketData.value,
-          history: generateBaselinePoints(count),
+          history: generateBaselinePoints(getCountForRange(targetRange)),
         };
       }
     } finally {
