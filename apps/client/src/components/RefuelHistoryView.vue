@@ -56,7 +56,6 @@ const supportUrl = computed(() => {
 
 // Form Fields
 const selectedVehicleId = ref<string>('');
-const customVehicleName = ref('');
 const stationName = ref('');
 const stationId = ref<string | undefined>(undefined);
 const stationAddress = ref<string | undefined>(undefined);
@@ -178,29 +177,16 @@ const availableYears = computed(() => {
 
 const availableVehicleFilterOptions = computed(() => {
   const options: { value: string; label: string }[] = [{ value: 'all', label: 'Todos los vehículos' }];
-  const seen = new Set<string>();
-
   vehicles.value.forEach((v) => {
-    seen.add(v.id);
     options.push({ value: v.id, label: `${v.alias} (${v.plate})` });
   });
-
-  logs.value.forEach((l) => {
-    if (l.vehicleAlias && !l.vehicleId && !seen.has(l.vehicleAlias)) {
-      seen.add(l.vehicleAlias);
-      options.push({ value: l.vehicleAlias, label: l.vehicleAlias });
-    }
-  });
-
   return options;
 });
 
 const filteredLogs = computed(() => {
   return logs.value.filter((log) => {
     if (filterVehicle.value !== 'all') {
-      const matchId = log.vehicleId === filterVehicle.value;
-      const matchAlias = log.vehicleAlias === filterVehicle.value;
-      if (!matchId && !matchAlias) return false;
+      if (log.vehicleId !== filterVehicle.value) return false;
     }
     if (filterTrimester.value !== 'all') {
       const d = new Date(log.date);
@@ -285,7 +271,6 @@ const printReport = () => {
 const openNewRefuelForm = () => {
   editingLogId.value = null;
   selectedVehicleId.value = activeVehicle.value?.id || '';
-  customVehicleName.value = '';
   stationName.value = '';
   stationId.value = undefined;
   stationAddress.value = undefined;
@@ -321,16 +306,7 @@ const openNewRefuelForm = () => {
 
 const openEditRefuelForm = (item: RefuelLog) => {
   editingLogId.value = item.id;
-  if (item.vehicleId && vehicles.value.some((v) => v.id === item.vehicleId)) {
-    selectedVehicleId.value = item.vehicleId;
-    customVehicleName.value = '';
-  } else if (item.vehicleAlias) {
-    selectedVehicleId.value = vehicles.value.length > 0 ? '__custom__' : '';
-    customVehicleName.value = item.vehicleAlias;
-  } else {
-    selectedVehicleId.value = '';
-    customVehicleName.value = '';
-  }
+  selectedVehicleId.value = item.vehicleId || '';
   stationName.value = item.stationName;
   stationId.value = item.stationId;
   stationAddress.value = item.stationAddress;
@@ -359,8 +335,6 @@ const handleSave = () => {
     avgP && avgP > p ? Math.round((avgP - p) * l * 100) / 100 : undefined;
 
   const chosenVeh = vehicles.value.find((v) => v.id === selectedVehicleId.value);
-  const resolvedAlias = chosenVeh ? chosenVeh.alias : (customVehicleName.value.trim() || undefined);
-  const resolvedPlate = chosenVeh ? chosenVeh.plate : undefined;
 
   const payload = {
     stationName: stationName.value.trim(),
@@ -375,8 +349,8 @@ const handleSave = () => {
     odometerKm: odometerKm.value !== '' ? Number(odometerKm.value) : null,
     notes: notes.value.trim() || undefined,
     vehicleId: chosenVeh?.id,
-    vehicleAlias: resolvedAlias,
-    vehiclePlate: resolvedPlate,
+    vehicleAlias: chosenVeh?.alias,
+    vehiclePlate: chosenVeh?.plate,
   };
 
   if (editingLogId.value) {
@@ -545,66 +519,55 @@ onMounted(() => {
     </div>
 
     <!-- New / Edit Form Modal -->
-    <div v-if="isFormOpen" class="modal-backdrop" @click.self="isFormOpen = false">
-      <div class="form-modal-card">
-        <div class="modal-header">
-          <div class="title-wrap">
-            <ReceiptText :size="20" class="text-primary" />
-            <h3>{{ editingLogId ? 'Editar Repostaje' : 'Registrar Nuevo Repostaje' }}</h3>
-          </div>
-          <button class="close-btn" @click="isFormOpen = false">
-            <X :size="18" />
-          </button>
-        </div>
-
-        <form @submit.prevent="handleSave" class="refuel-form">
-          <!-- Quick station picker -->
-          <div v-if="quickStations.length > 0 && !editingLogId" class="quick-picker-box">
-            <label class="field-label">Surtidor rápido (cercanas / favoritas):</label>
-            <div class="quick-chips">
-              <button
-                type="button"
-                v-for="st in quickStations.slice(0, 5)"
-                :key="st.id"
-                class="quick-chip"
-                :class="{ active: stationId === st.id }"
-                @click="selectQuickStation(st)"
-              >
-                <span>{{ st.brand }}</span>
-                <small v-if="st.selected_fuel_price">{{ st.selected_fuel_price.toFixed(3) }}€</small>
-              </button>
+    <Teleport to="body">
+      <div v-if="isFormOpen" class="modal-backdrop" @click.self="isFormOpen = false">
+        <div class="form-modal-card">
+          <div class="modal-header">
+            <div class="title-wrap">
+              <ReceiptText :size="20" class="text-primary" />
+              <h3>{{ editingLogId ? 'Editar Repostaje' : 'Registrar Nuevo Repostaje' }}</h3>
             </div>
+            <button class="close-btn" @click="isFormOpen = false">
+              <X :size="18" />
+            </button>
           </div>
 
-          <!-- Vehicle / Automobile Selector (Optional) -->
-          <div class="form-group">
-            <label class="field-label">Automóvil / Vehículo (opcional)</label>
-            <div v-if="vehicles.length > 0" class="input-icon-wrap">
-              <Car :size="16" class="field-icon" />
-              <select v-model="selectedVehicleId" class="form-select">
-                <option value="">(Sin vehículo asignado)</option>
-                <option v-for="v in vehicles" :key="v.id" :value="v.id">
-                  {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
-                </option>
-                <option value="__custom__">Otro vehículo (escribir nombre)...</option>
-              </select>
+          <form @submit.prevent="handleSave" class="refuel-form">
+            <!-- Quick station picker -->
+            <div v-if="quickStations.length > 0 && !editingLogId" class="quick-picker-box">
+              <label class="field-label">Surtidor rápido (cercanas / favoritas):</label>
+              <div class="quick-chips">
+                <button
+                  type="button"
+                  v-for="st in quickStations.slice(0, 5)"
+                  :key="st.id"
+                  class="quick-chip"
+                  :class="{ active: stationId === st.id }"
+                  @click="selectQuickStation(st)"
+                >
+                  <span>{{ st.brand }}</span>
+                  <small v-if="st.selected_fuel_price">{{ st.selected_fuel_price.toFixed(3) }}€</small>
+                </button>
+              </div>
             </div>
 
-            <!-- Custom vehicle name input (if no saved vehicles or custom chosen) -->
-            <div
-              v-if="vehicles.length === 0 || selectedVehicleId === '__custom__'"
-              class="input-icon-wrap"
-              :style="vehicles.length > 0 ? 'margin-top: 6px;' : ''"
-            >
-              <Car :size="16" class="field-icon" />
-              <input
-                v-model="customVehicleName"
-                type="text"
-                placeholder="Ej. Seat León, Mi coche, Moto..."
-                class="form-input"
-              />
+            <!-- Vehicle Selector from Mis Vehículos in Ajustes -->
+            <div class="form-group">
+              <label class="field-label">Vehículo asignado (opcional)</label>
+              <div v-if="vehicles.length > 0" class="input-icon-wrap">
+                <Car :size="16" class="field-icon" />
+                <select v-model="selectedVehicleId" class="form-select">
+                  <option value="">(Sin vehículo asignado)</option>
+                  <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                    {{ v.alias }} — {{ v.brand }} {{ v.model }} ({{ v.plate }})
+                  </option>
+                </select>
+              </div>
+              <div v-else class="vehicle-empty-notice">
+                <Car :size="15" class="text-muted" />
+                <span>Sin vehículos registrados. Podés añadirlos en <strong>Ajustes > Mis Vehículos</strong>.</span>
+              </div>
             </div>
-          </div>
 
           <!-- Station Name -->
           <div class="form-group">
@@ -733,8 +696,9 @@ onMounted(() => {
         </form>
       </div>
     </div>
+  </Teleport>
 
-    <!-- Empty State -->
+  <!-- Empty State -->
     <div v-if="filteredLogs.length === 0" class="empty-state">
       <ReceiptText :size="52" class="empty-icon" />
       <h3 v-if="logs.length === 0">No tenés repostajes registrados</h3>
@@ -793,31 +757,33 @@ onMounted(() => {
     </div>
 
     <!-- Voluntary Support Modal on high savings -->
-    <div v-if="showSupportModal" class="modal-backdrop" @click.self="showSupportModal = false">
-      <div class="support-modal-card">
-        <div class="support-icon">☕</div>
-        <h3>¡Ahorraste {{ savedAmountPrompt.toFixed(2) }} € en este repostaje!</h3>
-        <p>
-          LlenoPorfa es un proyecto independiente y gratuito para ayudarte a pagar lo mínimo en cada repostaje.
-          Si la app te ayuda a ahorrar mes a mes, podés colaborar voluntariamente para mantener los servidores activos.
-        </p>
-        <div class="support-actions">
-          <a
-            :href="supportUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="support-btn-primary"
-            @click="showSupportModal = false"
-          >
-            <Heart :size="16" />
-            <span>Invitar a un café</span>
-          </a>
-          <button class="support-btn-secondary" @click="showSupportModal = false">
-            Ahora no
-          </button>
+    <Teleport to="body">
+      <div v-if="showSupportModal" class="modal-backdrop" @click.self="showSupportModal = false">
+        <div class="support-modal-card">
+          <div class="support-icon">☕</div>
+          <h3>¡Ahorraste {{ savedAmountPrompt.toFixed(2) }} € en este repostaje!</h3>
+          <p>
+            LlenoPorfa es un proyecto independiente y gratuito para ayudarte a pagar lo mínimo en cada repostaje.
+            Si la app te ayuda a ahorrar mes a mes, podés colaborar voluntariamente para mantener los servidores activos.
+          </p>
+          <div class="support-actions">
+            <a
+              :href="supportUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="support-btn-primary"
+              @click="showSupportModal = false"
+            >
+              <Heart :size="16" />
+              <span>Invitar a un café</span>
+            </a>
+            <button class="support-btn-secondary" @click="showSupportModal = false">
+              Ahora no
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Screen Hidden Printable Report for @media print -->
     <div class="print-report-container">
@@ -1254,6 +1220,22 @@ onMounted(() => {
 
   .form-input {
     padding-left: 34px !important;
+  }
+}
+
+.vehicle-empty-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-surface-subtle);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.775rem;
+  color: var(--text-muted);
+
+  strong {
+    color: var(--text-main);
   }
 }
 

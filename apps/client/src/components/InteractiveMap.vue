@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import { Navigation, Plus, Minus, X, ArrowRight, Sparkles, MapPin, Route, Compass } from 'lucide-vue-next';
+import { Navigation, Plus, Minus, X, ArrowRight, Sparkles } from 'lucide-vue-next';
 import type { Station, Coordinates } from '../types';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useHaptics } from '../composables/useHaptics';
+import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
+import WazeIcon from './icons/WazeIcon.vue';
+import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 
 const props = defineProps<{
   stations: Station[];
@@ -328,7 +331,7 @@ onBeforeUnmount(() => {
               title="Abrir en Google Maps"
               aria-label="Google Maps"
             >
-              <MapPin :size="16" />
+              <GoogleMapsIcon :size="20" />
             </a>
             <a
               :href="`https://waze.com/ul?ll=${selectedStation.latitude},${selectedStation.longitude}&navigate=yes`"
@@ -339,7 +342,7 @@ onBeforeUnmount(() => {
               title="Abrir en Waze"
               aria-label="Waze"
             >
-              <Route :size="16" />
+              <WazeIcon :size="20" />
             </a>
             <a
               :href="`https://maps.apple.com/?daddr=${selectedStation.latitude},${selectedStation.longitude}&dirflg=d`"
@@ -350,7 +353,7 @@ onBeforeUnmount(() => {
               title="Abrir en Apple Maps"
               aria-label="Apple Maps"
             >
-              <Compass :size="16" />
+              <AppleMapsIcon :size="20" />
             </a>
           </div>
 
@@ -549,25 +552,26 @@ onBeforeUnmount(() => {
       .gps-direct-logos {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 10px;
 
         .gps-logo-item {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 30px;
-          height: 30px;
-          border-radius: var(--radius-md);
-          background: var(--bg-surface-subtle);
-          border: 1px solid var(--border-color);
-          color: var(--text-muted);
-          transition: all var(--transition-fast);
+          background: none;
+          border: none;
+          box-shadow: none;
+          padding: 2px;
+          line-height: 1;
+          opacity: 0.92;
+          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      opacity 0.2s ease,
+                      filter 0.2s ease;
 
           &:hover {
-            color: var(--color-primary);
-            background: var(--color-primary-light);
-            border-color: var(--color-primary);
-            transform: translateY(-1px);
+            opacity: 1;
+            transform: scale(1.22) translateY(-1px);
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
           }
 
           &:active {

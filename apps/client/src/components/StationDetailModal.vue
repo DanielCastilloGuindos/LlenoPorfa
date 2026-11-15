@@ -8,8 +8,7 @@ import {
   Sparkles,
   Share2,
   ReceiptText,
-  Route,
-  Compass,
+  Cylinder,
 } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
@@ -20,6 +19,9 @@ import { useMarket } from '../composables/useMarket';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useTelemetry } from '../composables/useTelemetry';
 import { useHaptics } from '../composables/useHaptics';
+import GoogleMapsIcon from './icons/GoogleMapsIcon.vue';
+import WazeIcon from './icons/WazeIcon.vue';
+import AppleMapsIcon from './icons/AppleMapsIcon.vue';
 import StationDetailMiniMap from './StationDetailMiniMap.vue';
 import gsap from 'gsap';
 
@@ -332,7 +334,7 @@ watch(
         </div>
       </div>
 
-      <!-- Direct GPS Navigation with Lucide Icons -->
+      <!-- Direct GPS Navigation Logos (Big) -->
       <div class="gps-navigation-section">
         <span class="section-heading">Abrir en navegador GPS</span>
         <div class="gps-direct-logos">
@@ -345,8 +347,7 @@ watch(
             aria-label="Google Maps"
             @click="handleNavClick('google_maps')"
           >
-            <MapPin :size="16" />
-            <span>Google Maps</span>
+            <GoogleMapsIcon :size="36" />
           </a>
 
           <a
@@ -358,8 +359,7 @@ watch(
             aria-label="Waze"
             @click="handleNavClick('waze')"
           >
-            <Route :size="16" />
-            <span>Waze</span>
+            <WazeIcon :size="36" />
           </a>
 
           <a
@@ -371,8 +371,7 @@ watch(
             aria-label="Apple Maps"
             @click="handleNavClick('apple_maps')"
           >
-            <Compass :size="16" />
-            <span>Apple Maps</span>
+            <AppleMapsIcon :size="36" />
           </a>
         </div>
       </div>
@@ -397,7 +396,7 @@ watch(
           @keydown.enter.prevent="openBarometer(); light()"
         >
           <div class="header-left">
-            <span class="breakdown-icon">🛢️</span>
+            <Cylinder :size="16" class="breakdown-icon" style="color: #f59e0b;" />
             <div class="breakdown-titles">
               <span class="section-heading">¿A dónde va tu dinero en esta estación?</span>
               <span class="section-sub">Desglose de 1L de {{ stationBreakdown.fuelName }} ({{ stationBreakdown.pvp.toFixed(3) }} €)</span>
@@ -887,16 +886,15 @@ watch(
 }
 
 .gps-navigation-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  @include flex-between;
+  align-items: center;
+  padding: 12px 18px;
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 
   .section-heading {
-    font-size: 0.775rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: var(--text-muted);
   }
@@ -904,32 +902,30 @@ watch(
   .gps-direct-logos {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 20px;
 
     .gps-logo-item {
-      flex: 1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 8px 10px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-main);
-      transition: all var(--transition-fast);
+      background: none;
+      border: none;
+      box-shadow: none;
+      padding: 3px;
+      line-height: 1;
+      opacity: 0.95;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity 0.2s ease,
+                  filter 0.2s ease;
 
       &:hover {
-        color: var(--color-primary);
-        border-color: var(--color-primary);
-        background: var(--color-primary-light);
-        transform: translateY(-1px);
+        opacity: 1;
+        transform: scale(1.18) translateY(-2px);
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
       }
 
       &:active {
-        transform: scale(0.96);
+        transform: scale(0.92);
       }
     }
   }

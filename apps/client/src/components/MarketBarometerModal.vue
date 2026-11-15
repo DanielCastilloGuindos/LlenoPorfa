@@ -13,6 +13,7 @@ import {
   Droplets,
   DollarSign,
   Scale,
+  Cylinder,
 } from 'lucide-vue-next';
 import type { FuelId, DailyMarketPoint } from '../types';
 import { useMarket } from '../composables/useMarket';
@@ -244,7 +245,7 @@ const onChartTouch = (e: TouchEvent) => {
       <div class="sheet-header">
         <div class="header-titles">
           <div class="title-badge-row">
-            <span class="badge-icon">🛢️</span>
+            <Cylinder :size="18" class="badge-icon" style="color: #f59e0b;" />
             <h2>Barómetro del Crudo e Impuestos</h2>
           </div>
           <p class="subtitle">

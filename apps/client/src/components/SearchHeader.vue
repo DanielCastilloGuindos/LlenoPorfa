@@ -12,6 +12,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Cylinder,
 } from 'lucide-vue-next';
 import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
@@ -72,7 +73,7 @@ const openSaveModal = () => {
         title="Abrir Barómetro del Crudo e Impuestos"
         aria-label="Abrir Barómetro del Crudo e Impuestos"
       >
-        <span class="crude-icon">🛢️</span>
+        <Cylinder :size="14" class="crude-icon" />
         <span class="crude-text">Crudo: <strong>{{ crudePriceFormatted }}€</strong></span>
         <span class="crude-trend" :class="marketData.trend">
           <TrendingUp v-if="marketData.trend === 'rising'" :size="11" />
@@ -235,8 +236,8 @@ const openSaveModal = () => {
   }
 
   .crude-icon {
-    font-size: 0.85rem;
-    line-height: 1;
+    color: #f59e0b;
+    flex-shrink: 0;
   }
 
   .crude-text {

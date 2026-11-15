@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import {
   Settings,
   Moon,
@@ -67,6 +67,7 @@ const themes: { id: 'light' | 'dark' | 'system'; label: string; icon: any }[] = 
 // Vehicle Form State
 const isVehicleModalOpen = ref(false);
 const editingVehicleId = ref<string | null>(null);
+const aliasInputRef = ref<HTMLInputElement | null>(null);
 const vehicleAlias = ref('');
 const vehicleBrand = ref('');
 const vehicleModel = ref('');
@@ -83,6 +84,9 @@ const openAddVehicleModal = () => {
   vehicleFuelType.value = settings.value.defaultFuel || 'g95_e5';
   vehicleTankCapacity.value = settings.value.tankCapacityLiters || 50;
   isVehicleModalOpen.value = true;
+  nextTick(() => {
+    aliasInputRef.value?.focus();
+  });
 };
 
 const openEditVehicleModal = (veh: Vehicle) => {
@@ -94,6 +98,9 @@ const openEditVehicleModal = (veh: Vehicle) => {
   vehicleFuelType.value = veh.fuelType;
   vehicleTankCapacity.value = veh.tankCapacityLiters;
   isVehicleModalOpen.value = true;
+  nextTick(() => {
+    aliasInputRef.value?.focus();
+  });
 };
 
 const handleSaveVehicle = () => {
@@ -410,78 +417,81 @@ const handleInstallPwa = async () => {
     </div>
 
     <!-- Vehicle Modal -->
-    <div v-if="isVehicleModalOpen" class="modal-backdrop" @click.self="isVehicleModalOpen = false">
-      <div class="vehicle-modal-card">
-        <div class="modal-header">
-          <h3>{{ editingVehicleId ? 'Editar Vehículo' : 'Añadir Nuevo Vehículo' }}</h3>
-          <button class="close-btn" @click="isVehicleModalOpen = false">
-            <X :size="18" />
-          </button>
-        </div>
-
-        <form @submit.prevent="handleSaveVehicle" class="vehicle-form">
-          <div class="form-group">
-            <label class="field-label">Nombre / Alias del vehículo*</label>
-            <input
-              v-model="vehicleAlias"
-              type="text"
-              required
-              placeholder="Ej. Coche familiar, Furgoneta reparto..."
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="field-label">Marca</label>
-              <input v-model="vehicleBrand" type="text" placeholder="Ej. Toyota" class="form-input" />
-            </div>
-            <div class="form-group flex-1">
-              <label class="field-label">Modelo</label>
-              <input v-model="vehicleModel" type="text" placeholder="Ej. Yaris Cross" class="form-input" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="field-label">Matrícula*</label>
-              <input
-                v-model="vehiclePlate"
-                type="text"
-                required
-                placeholder="1234 ABC"
-                class="form-input font-mono uppercase"
-              />
-            </div>
-            <div class="form-group flex-1">
-              <label class="field-label">Capacidad Depósito (L)</label>
-              <input
-                v-model.number="vehicleTankCapacity"
-                type="number"
-                min="10"
-                max="250"
-                class="form-input font-mono"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label">Combustible habitual</label>
-            <select v-model="vehicleFuelType" class="form-select">
-              <option v-for="f in fuelOptions" :key="f.id" :value="f.id">{{ f.label }}</option>
-            </select>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="isVehicleModalOpen = false">Cancelar</button>
-            <button type="submit" class="btn-primary">
-              <Check :size="16" />
-              <span>Guardar</span>
+    <Teleport to="body">
+      <div v-if="isVehicleModalOpen" class="modal-backdrop" @click.self="isVehicleModalOpen = false">
+        <div class="vehicle-modal-card">
+          <div class="modal-header">
+            <h3>{{ editingVehicleId ? 'Editar Vehículo' : 'Añadir Nuevo Vehículo' }}</h3>
+            <button class="close-btn" @click="isVehicleModalOpen = false">
+              <X :size="18" />
             </button>
           </div>
-        </form>
+
+          <form @submit.prevent="handleSaveVehicle" class="vehicle-form">
+            <div class="form-group">
+              <label class="field-label">Nombre / Alias del vehículo*</label>
+              <input
+                ref="aliasInputRef"
+                v-model="vehicleAlias"
+                type="text"
+                required
+                placeholder="Ej. Coche familiar, Furgoneta reparto..."
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="field-label">Marca</label>
+                <input v-model="vehicleBrand" type="text" placeholder="Ej. Toyota" class="form-input" />
+              </div>
+              <div class="form-group flex-1">
+                <label class="field-label">Modelo</label>
+                <input v-model="vehicleModel" type="text" placeholder="Ej. Yaris Cross" class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="field-label">Matrícula*</label>
+                <input
+                  v-model="vehiclePlate"
+                  type="text"
+                  required
+                  placeholder="1234 ABC"
+                  class="form-input font-mono uppercase"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label class="field-label">Capacidad Depósito (L)</label>
+                <input
+                  v-model.number="vehicleTankCapacity"
+                  type="number"
+                  min="10"
+                  max="250"
+                  class="form-input font-mono"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label">Combustible habitual</label>
+              <select v-model="vehicleFuelType" class="form-select">
+                <option v-for="f in fuelOptions" :key="f.id" :value="f.id">{{ f.label }}</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-secondary" @click="isVehicleModalOpen = false">Cancelar</button>
+              <button type="submit" class="btn-primary">
+                <Check :size="16" />
+                <span>Guardar</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -933,7 +943,7 @@ const handleInstallPwa = async () => {
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 400;
+  z-index: 1000;
   @include flex-center;
   padding: 16px;
 }
