@@ -23,6 +23,7 @@ import {
   Radio,
   Bell,
   Coffee,
+  ChevronDown,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { usePwaInstall } from '../composables/usePwaInstall';
@@ -265,17 +266,18 @@ const handleInstallPwa = async () => {
       </div>
       <p class="card-desc">El tipo de carburante que se seleccionará automáticamente al abrir la app.</p>
 
-      <div class="fuel-grid">
-        <button
-          v-for="f in fuelOptions"
-          :key="f.id"
-          class="option-pill"
-          :class="{ active: settings.defaultFuel === f.id }"
-          @click="handleFuelChange(f.id)"
+      <div class="fuel-select-wrap">
+        <select
+          :value="settings.defaultFuel"
+          class="form-select settings-fuel-select"
+          aria-label="Seleccionar combustible por defecto"
+          @change="handleFuelChange(($event.target as HTMLSelectElement).value as FuelId)"
         >
-          <span>{{ f.label }}</span>
-          <Check v-if="settings.defaultFuel === f.id" :size="14" />
-        </button>
+          <option v-for="f in fuelOptions" :key="f.id" :value="f.id">
+            {{ f.label }}
+          </option>
+        </select>
+        <ChevronDown :size="16" class="select-chevron" />
       </div>
     </div>
 
@@ -671,33 +673,38 @@ const handleInstallPwa = async () => {
   }
 }
 
-.fuel-grid {
+.fuel-select-wrap {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
 
-  .option-pill {
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
+  .settings-fuel-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 12px 40px 12px 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    min-height: 48px;
     background: var(--bg-surface-subtle);
     border: 1px solid var(--border-color);
-    font-size: 0.875rem;
-    font-weight: 600;
+    border-radius: var(--radius-md);
     color: var(--text-main);
-    min-height: 46px;
-    @include flex-between;
-    transition: all var(--transition-fast);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 
-    &:hover {
-      background: var(--border-color);
-    }
-
-    &.active {
+    &:focus {
       border-color: var(--color-primary);
-      background: var(--color-primary-light);
-      color: var(--color-primary-dark);
-      font-weight: 800;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
     }
+  }
+
+  .select-chevron {
+    position: absolute;
+    right: 14px;
+    pointer-events: none;
+    color: var(--text-muted);
   }
 }
 

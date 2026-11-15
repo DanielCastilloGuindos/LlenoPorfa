@@ -48,7 +48,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
   <aside class="desktop-sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
-        <Fuel :size="24" class="icon-fill" />
+        <img src="/icons/icon.svg" alt="llenoPorfa logo" class="brand-logo-img" />
       </div>
       <div class="brand-info">
         <h1 class="brand-title">llenoPorfa</h1>
@@ -126,9 +126,17 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
     width: 38px;
     height: 38px;
     border-radius: var(--radius-md);
-    background: var(--text-main);
-    color: var(--bg-surface);
+    background: transparent;
+    overflow: hidden;
     @include flex-center;
+    flex-shrink: 0;
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+    }
   }
 
   .brand-title {

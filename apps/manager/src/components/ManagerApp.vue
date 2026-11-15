@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import {
-  Shield,
   KeyRound,
   TrendingUp,
   Users,
@@ -507,7 +506,7 @@ const activeChartTooltip = computed(() => {
       <div class="login-card">
         <div class="login-header">
           <div class="shield-badge">
-            <Shield :size="28" />
+            <img src="/icons/icon.svg" alt="llenoPorfa logo" class="brand-logo-img" />
           </div>
           <h1>llenoPorfa Manager</h1>
           <p>Panel Ejecutivo de Telemetría, Visitas y Conversión</p>
@@ -553,7 +552,7 @@ const activeChartTooltip = computed(() => {
       <header class="manager-nav">
         <div class="brand-block">
           <div class="brand-title">
-            <Flame :size="20" class="text-primary" />
+            <img src="/icons/icon.svg" alt="llenoPorfa logo" class="brand-logo-nav" />
             <h2>llenoPorfa Analytics</h2>
           </div>
           <span class="storage-badge" :class="stats.storage_mode">
@@ -978,10 +977,15 @@ const activeChartTooltip = computed(() => {
       width: 56px;
       height: 56px;
       border-radius: var(--radius-xl);
-      background: var(--color-primary-light);
-      color: var(--color-primary);
+      overflow: hidden;
       @include flex-center;
       margin-bottom: 6px;
+
+      .brand-logo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
     }
 
     h1 {
@@ -1115,6 +1119,13 @@ const activeChartTooltip = computed(() => {
       display: flex;
       align-items: center;
       gap: 8px;
+
+      .brand-logo-nav {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        object-fit: cover;
+      }
 
       h2 {
         font-size: 1.15rem;

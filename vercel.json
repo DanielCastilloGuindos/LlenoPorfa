@@ -36,16 +36,12 @@
   ],
   "crons": [
     {
-      "path": "/api/sync?target=gas",
-      "schedule": "0 */4 * * *"
+      "path": "/api/sync?target=all",
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/sync?target=crude",
       "schedule": "30 22 * * *"
-    },
-    {
-      "path": "/api/sync?target=all",
-      "schedule": "0 3 * * *"
     }
   ],
   "regions": ["cdg1"],
