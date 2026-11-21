@@ -96,6 +96,41 @@ export interface Vehicle {
   fiscalName?: string;
   fiscalNif?: string;
   isDefault?: boolean;
+  brand: string;
+  model: string;
+  maintenanceRules?: MaintenanceRule[];
+}
+
+export type MaintenanceKind = 'oil' | 'inspection' | 'tyres' | 'custom';
+
+export interface MaintenanceRule {
+  id: string;
+  title: string;
+  vehicleId: string;
+  kind?: MaintenanceKind;
+  startDate?: string;
+  startOdometerKm?: number | null;
+  intervalMonths?: number | null;
+  intervalKm?: number | null;
+  targetOdometerKm?: number | null;
+  enabled?: boolean;
+  completedAt?: string;
+  completedOdometerKm?: number | null;
+  snoozedUntil?: string;
+}
+
+export type MaintenanceAlertStatus = 'pending' | 'upcoming' | 'overdue';
+export type MaintenanceAlertReason = 'date' | 'km' | 'date_and_km' | 'none';
+
+export interface MaintenanceAlert {
+  rule: MaintenanceRule;
+  title: string;
+  vehicleId: string;
+  status: MaintenanceAlertStatus;
+  reason: MaintenanceAlertReason;
+  dueDate?: string;
+  dueOdometerKm?: number;
+  currentOdometerKm?: number;
 }
 
 export interface RefuelLog {

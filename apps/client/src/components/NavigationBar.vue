@@ -4,6 +4,7 @@ import { Search, ReceiptText, MapPin, Heart, Settings, Fuel } from 'lucide-vue-n
 import type { TabId } from '../types';
 import { useHaptics } from '../composables/useHaptics';
 import gsap from 'gsap';
+import { useMaintenance } from '../composables/useMaintenance';
 
 const props = defineProps<{
   activeTab: TabId;
@@ -14,6 +15,7 @@ const emit = defineEmits<{
 }>();
 
 const { light } = useHaptics();
+const { activeAlerts } = useMaintenance();
 
 const tabs = [
   { id: 'search' as TabId, label: 'Buscar', icon: Search },
@@ -66,6 +68,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
       >
         <component :is="tab.icon" :size="20" class="nav-icon" />
         <span class="nav-label">{{ tab.label }}</span>
+        <span v-if="tab.id === 'settings' && activeAlerts.length" class="maintenance-count">{{ activeAlerts.length }}</span>
         <span v-if="activeTab === tab.id" class="active-indicator"></span>
       </button>
     </nav>
@@ -89,7 +92,8 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
         <component :is="tab.icon" :size="22" class="nav-icon" />
         <span v-if="activeTab === tab.id" class="mobile-active-dot"></span>
       </div>
-      <span class="mobile-nav-label">{{ tab.label }}</span>
+       <span class="mobile-nav-label">{{ tab.label }}</span>
+       <span v-if="tab.id === 'settings' && activeAlerts.length" class="maintenance-count">{{ activeAlerts.length }}</span>
     </button>
   </nav>
 </template>
@@ -231,6 +235,7 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
   align-items: center;
 
   .mobile-nav-item {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -265,6 +270,22 @@ const selectTab = (tabId: TabId, targetEl?: HTMLElement) => {
         background-color: var(--color-primary);
       }
     }
+  }
+
+  .maintenance-count {
+    position: absolute;
+    top: 4px;
+    right: 22%;
+    margin: 0;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #fff;
+    font: 700 0.65rem/17px var(--font-mono);
+    text-align: center;
+    pointer-events: none;
   }
 }
 </style>

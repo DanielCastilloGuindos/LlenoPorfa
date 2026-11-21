@@ -22,7 +22,17 @@ if (typeof window !== 'undefined') {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      settings.value = { ...defaultSettings, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      settings.value = {
+        ...defaultSettings,
+        ...parsed,
+        vehicles: (parsed.vehicles || []).map((vehicle: Vehicle) => ({
+          ...vehicle,
+          brand: vehicle.brand || '',
+          model: vehicle.model || '',
+          maintenanceRules: vehicle.maintenanceRules || [],
+        })),
+      };
     }
   } catch (_) {}
 }
@@ -33,7 +43,17 @@ export function useSettings() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        settings.value = { ...defaultSettings, ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        settings.value = {
+          ...defaultSettings,
+          ...parsed,
+          vehicles: (parsed.vehicles || []).map((vehicle: Vehicle) => ({
+            ...vehicle,
+            brand: vehicle.brand || '',
+            model: vehicle.model || '',
+            maintenanceRules: vehicle.maintenanceRules || [],
+          })),
+        };
       }
     } catch (e) {
       console.error('Failed to parse settings from localStorage', e);

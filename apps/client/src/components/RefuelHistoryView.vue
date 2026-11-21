@@ -29,6 +29,7 @@ import { useSettings } from '../composables/useSettings';
 import { useStations } from '../composables/useStations';
 import { useFavorites } from '../composables/useFavorites';
 import { useTelemetry } from '../composables/useTelemetry';
+import { useMaintenance } from '../composables/useMaintenance';
 import gsap from 'gsap';
 
 const { logs, stats, activePrefill, addLog, updateLog, deleteLog, clearPrefill } = useRefuelLogs();
@@ -36,6 +37,7 @@ const { settings, vehicles, activeVehicle } = useSettings();
 const { stations, stats: stationsStats, fuel: currentFuelFilter } = useStations();
 const { favorites } = useFavorites();
 const { trackEvent } = useTelemetry();
+const { evaluate } = useMaintenance();
 
 const isFormOpen = ref(false);
 const editingLogId = ref<string | null>(null);
@@ -438,6 +440,7 @@ const handleSave = () => {
   } else {
     addLog(payload);
   }
+  evaluate();
 
   // Track telemetry
   trackEvent('refuel_logged', {

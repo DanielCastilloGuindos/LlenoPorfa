@@ -24,12 +24,15 @@ import {
   Bell,
   Coffee,
   ChevronDown,
+  Wrench,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { usePwaInstall } from '../composables/usePwaInstall';
 import { useNativeRadar } from '../composables/useNativeRadar';
 import { useHaptics } from '../composables/useHaptics';
-import type { FuelId, Vehicle } from '../types';
+import type { FuelId, MaintenanceKind, MaintenanceRule, Vehicle } from '../types';
+import { useMaintenance } from '../composables/useMaintenance';
+import { useRefuelLogs } from '../composables/useRefuelLogs';
 
 const {
   settings,
@@ -44,6 +47,49 @@ const {
 const { canInstall, isStandalone, isIos, promptInstall } = usePwaInstall();
 const { light, success } = useHaptics();
 const { isNative, isRadarRunning, radarError } = useNativeRadar();
+const { alerts, activeAlerts, saveRule, deleteRule, completeRule, snoozeRule } = useMaintenance();
+const { logs } = useRefuelLogs();
+
+const isMaintenanceModalOpen = ref(false);
+const editingRuleId = ref<string | null>(null);
+const maintenanceTitle = ref('');
+const maintenanceVehicleId = ref('');
+const maintenanceStartDate = ref(new Date().toISOString().slice(0, 10));
+const maintenanceStartKm = ref<number | ''>('');
+const maintenanceMonths = ref<number | ''>('');
+const maintenanceKm = ref<number | ''>('');
+const maintenanceKind = ref<MaintenanceKind>('custom');
+
+const openMaintenance = (vehicle?: Vehicle, existing?: MaintenanceRule) => {
+  editingRuleId.value = existing?.id || null;
+  maintenanceTitle.value = existing?.title || '';
+  maintenanceVehicleId.value = existing?.vehicleId || vehicle?.id || activeVehicle.value?.id || vehicles.value[0]?.id || '';
+  maintenanceStartDate.value = existing?.startDate?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+  const latestKm = logs.value.filter((log) => log.vehicleId === maintenanceVehicleId.value && typeof log.odometerKm === 'number').reduce((max, log) => Math.max(max, log.odometerKm as number), 0);
+  maintenanceStartKm.value = existing?.startOdometerKm ?? (latestKm || '');
+  maintenanceMonths.value = existing?.intervalMonths ?? '';
+  maintenanceKm.value = existing?.targetOdometerKm ?? existing?.intervalKm ?? '';
+  maintenanceKind.value = existing?.kind || 'custom';
+  isMaintenanceModalOpen.value = true;
+};
+const handleSaveMaintenance = () => {
+  if (!maintenanceTitle.value.trim() || !maintenanceVehicleId.value) return;
+  const existing = alerts.value.find((alert) => alert.rule.id === editingRuleId.value)?.rule;
+  const rule: MaintenanceRule = {
+    ...(existing || {}),
+    id: editingRuleId.value || `maint_${Date.now()}`,
+    title: maintenanceTitle.value.trim(),
+    vehicleId: maintenanceVehicleId.value,
+    kind: maintenanceKind.value,
+    startDate: new Date(`${maintenanceStartDate.value}T00:00:00`).toISOString(),
+    startOdometerKm: maintenanceStartKm.value === '' ? undefined : Number(maintenanceStartKm.value),
+    intervalMonths: maintenanceMonths.value === '' ? undefined : Number(maintenanceMonths.value),
+    intervalKm: maintenanceKm.value === '' ? undefined : Number(maintenanceKm.value),
+    enabled: true,
+  };
+  saveRule(rule);
+  isMaintenanceModalOpen.value = false;
+};
 
 const toggleBackgroundRadar = () => {
   light();
@@ -378,6 +424,44 @@ const handleInstallPwa = async () => {
       </div>
     </div>
 
+    <div class="settings-card maintenance-card">
+      <div class="card-header-between">
+        <div class="card-header-icon">
+          <Wrench :size="20" class="text-primary" />
+          <h3 class="card-title">Mantenimiento</h3>
+        </div>
+        <button class="add-vehicle-btn" :disabled="!vehicles.length" @click="openMaintenance()">
+          <Plus :size="16" /> <span>Añadir regla</span>
+        </button>
+      </div>
+      <p class="card-desc">Controla aceite, ITV, neumáticos o cualquier revisión por fecha o kilometraje.</p>
+      <div v-if="activeAlerts.length" class="maintenance-summary" role="status">
+        <strong>{{ activeAlerts.length }} {{ activeAlerts.length === 1 ? 'aviso pendiente' : 'avisos pendientes' }}</strong>
+        <span>La condición se activa por fecha o por km, lo primero que ocurra.</span>
+      </div>
+      <div v-if="!vehicles.length" class="vehicle-empty">Añade un vehículo para configurar sus revisiones.</div>
+      <div v-for="vehicle in vehicles" :key="vehicle.id" class="maintenance-vehicle">
+        <div class="maintenance-vehicle-header">
+          <strong>{{ vehicle.alias }}</strong>
+          <button class="text-action" @click="openMaintenance(vehicle)">Añadir</button>
+        </div>
+        <div v-if="!(vehicle.maintenanceRules || []).length" class="maintenance-empty">Sin reglas configuradas.</div>
+        <div v-for="rule in vehicle.maintenanceRules || []" :key="rule.id" class="maintenance-row">
+          <div>
+            <strong>{{ rule.title }}</strong>
+            <small v-if="alerts.find(a => a.rule.id === rule.id)">{{ alerts.find(a => a.rule.id === rule.id)?.reason === 'km' ? 'Por kilometraje' : alerts.find(a => a.rule.id === rule.id)?.reason === 'date' ? 'Por fecha' : 'Por fecha o km' }}</small>
+            <small v-else>Configurada</small>
+          </div>
+          <div class="maintenance-actions">
+            <button class="icon-btn" @click="openMaintenance(vehicle, rule)" title="Editar mantenimiento"><Edit2 :size="14" /></button>
+            <button class="icon-btn" @click="completeRule(rule)" title="Marcar realizada"><Check :size="14" /></button>
+            <button class="icon-btn" @click="snoozeRule(rule)" title="Posponer 7 días"><Bell :size="14" /></button>
+            <button class="icon-btn delete" @click="deleteRule(rule)" title="Eliminar mantenimiento"><Trash2 :size="14" /></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Fiscal Data for Freelancers and Companies -->
     <div class="settings-card">
       <div class="card-header-icon">
@@ -520,6 +604,23 @@ const handleInstallPwa = async () => {
               </div>
             </form>
           </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="isMaintenanceModalOpen" class="modal-backdrop" @click.self="isMaintenanceModalOpen = false">
+        <div class="detail-sheet vehicle-sheet">
+          <div class="bottom-sheet-handle"></div>
+          <div class="sheet-header"><div class="header-main"><div class="brand-row"><Wrench :size="18" class="text-primary" /><h3 class="sheet-title">{{ editingRuleId ? 'Editar mantenimiento' : 'Nueva regla de mantenimiento' }}</h3></div><p class="sheet-subtitle">Se avisa cuando vence la fecha o el kilometraje.</p></div><button class="action-btn close-btn" @click="isMaintenanceModalOpen = false" aria-label="Cerrar"><X :size="18" /></button></div>
+          <div class="sheet-content"><form class="vehicle-form" @submit.prevent="handleSaveMaintenance">
+            <div class="form-group"><label class="field-label" for="maintenance-title">Título</label><input id="maintenance-title" v-model="maintenanceTitle" required class="form-input" placeholder="Ej. Cambio de aceite" /></div>
+            <div class="form-group"><label class="field-label" for="maintenance-vehicle">Vehículo</label><select id="maintenance-vehicle" v-model="maintenanceVehicleId" required class="form-select"><option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.alias }}</option></select></div>
+            <div class="form-row"><div class="form-group flex-1"><label class="field-label" for="maintenance-start">Fecha inicial</label><input id="maintenance-start" v-model="maintenanceStartDate" type="date" required class="form-input" /></div><div class="form-group flex-1"><label class="field-label" for="maintenance-start-km">Km inicial</label><input id="maintenance-start-km" v-model.number="maintenanceStartKm" type="number" min="0" class="form-input" placeholder="Último registrado" /></div></div>
+            <div class="form-row"><div class="form-group flex-1"><label class="field-label" for="maintenance-months">Intervalo (meses)</label><input id="maintenance-months" v-model.number="maintenanceMonths" type="number" min="1" class="form-input" /></div><div class="form-group flex-1"><label class="field-label" for="maintenance-km">Intervalo (km / objetivo)</label><input id="maintenance-km" v-model.number="maintenanceKm" type="number" min="1" class="form-input" /></div></div>
+            <div class="form-group"><label class="field-label" for="maintenance-kind">Tipo</label><select id="maintenance-kind" v-model="maintenanceKind" class="form-select"><option value="oil">Aceite / cambio</option><option value="inspection">ITV / revisión</option><option value="tyres">Neumáticos</option><option value="custom">Personalizado</option></select></div>
+            <div class="form-actions"><button type="button" class="btn-secondary" @click="isMaintenanceModalOpen = false">Cancelar</button><button type="submit" class="btn-primary"><Check :size="16" /> Guardar</button></div>
+          </form></div>
         </div>
       </div>
     </Teleport>
@@ -816,6 +917,25 @@ const handleInstallPwa = async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.maintenance-card {
+  .maintenance-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--color-primary);
+    background: var(--bg-surface-subtle);
+    font-size: 0.8rem;
+    span { color: var(--text-muted); }
+  }
+  .maintenance-vehicle { border-top: 1px solid var(--border-color); padding-top: 10px; }
+  .maintenance-vehicle-header, .maintenance-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .maintenance-row { padding: 10px 0; border-top: 1px solid var(--border-color); }
+  .maintenance-row small, .maintenance-empty { display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 3px; }
+  .maintenance-actions { display: flex; gap: 2px; }
+  .text-action { color: var(--color-primary); font-size: 0.8rem; font-weight: 700; }
 }
 
 .vehicle-item {

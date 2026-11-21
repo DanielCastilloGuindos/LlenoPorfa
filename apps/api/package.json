@@ -2,6 +2,7 @@
   "name": "@llenoporfa/api",
   "version": "0.2.0",
   "private": true,
+  "type": "module",
   "description": "Clean Architecture API for LlenoPorfa (Gas, Electric & Hydrogen stations + Market analytics)",
   "scripts": {
     "dev": "bun run src/index.ts",
