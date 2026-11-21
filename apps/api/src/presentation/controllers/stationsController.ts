@@ -1,8 +1,8 @@
 import type { FuelId, SortMode, StationType } from '@llenoporfa/common';
-import { GetStationsUseCase } from '../../application/use-cases/stations/GetStationsUseCase';
-import { GetStationHistoryUseCase } from '../../application/use-cases/stations/GetStationHistoryUseCase';
-import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository';
-import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository';
+import { GetStationsUseCase } from '../../application/use-cases/stations/GetStationsUseCase.js';
+import { GetStationHistoryUseCase } from '../../application/use-cases/stations/GetStationHistoryUseCase.js';
+import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository.js';
+import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository.js';
 
 const stationRepo = new LibSqlStationRepository();
 const marketRepo = new LibSqlMarketRepository();

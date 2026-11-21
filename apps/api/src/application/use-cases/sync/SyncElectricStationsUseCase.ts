@@ -1,5 +1,5 @@
 import type { StationRepository, SyncResultDto } from '@llenoporfa/common';
-import { DgtDatexClient } from '../../../infrastructure/external/DgtDatexClient';
+import { DgtDatexClient } from '../../../infrastructure/external/DgtDatexClient.js';
 
 export class SyncElectricStationsUseCase {
   constructor(

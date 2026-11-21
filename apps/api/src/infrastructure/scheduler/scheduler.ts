@@ -4,7 +4,7 @@ import {
   handleSyncElectric,
   handleSyncGas,
   handleSyncHydrogen,
-} from '../../presentation/controllers/syncController';
+} from '../../presentation/controllers/syncController.js';
 
 let schedulerInterval: any = null;
 

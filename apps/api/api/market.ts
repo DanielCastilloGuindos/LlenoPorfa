@@ -1,8 +1,8 @@
-import { initDatabase } from '../src/infrastructure/database/client';
+import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetCrudeHistory,
   handleGetMarket,
-} from '../src/presentation/controllers/marketController';
+} from '../src/presentation/controllers/marketController.js';
 
 export default async function handler(req: Request) {
   await initDatabase();

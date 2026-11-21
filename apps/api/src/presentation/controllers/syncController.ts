@@ -1,10 +1,10 @@
-import { SyncGasStationsUseCase } from '../../application/use-cases/sync/SyncGasStationsUseCase';
-import { SyncElectricStationsUseCase } from '../../application/use-cases/sync/SyncElectricStationsUseCase';
-import { SyncHydrogenStationsUseCase } from '../../application/use-cases/sync/SyncHydrogenStationsUseCase';
-import { SyncCrudeOilPriceUseCase } from '../../application/use-cases/sync/SyncCrudeOilPriceUseCase';
-import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository';
-import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository';
-import { corsHeaders } from './stationsController';
+import { SyncGasStationsUseCase } from '../../application/use-cases/sync/SyncGasStationsUseCase.js';
+import { SyncElectricStationsUseCase } from '../../application/use-cases/sync/SyncElectricStationsUseCase.js';
+import { SyncHydrogenStationsUseCase } from '../../application/use-cases/sync/SyncHydrogenStationsUseCase.js';
+import { SyncCrudeOilPriceUseCase } from '../../application/use-cases/sync/SyncCrudeOilPriceUseCase.js';
+import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository.js';
+import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository.js';
+import { corsHeaders } from './stationsController.js';
 
 const stationRepo = new LibSqlStationRepository();
 const marketRepo = new LibSqlMarketRepository();

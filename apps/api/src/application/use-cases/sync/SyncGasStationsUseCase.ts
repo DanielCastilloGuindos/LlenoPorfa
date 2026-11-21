@@ -1,5 +1,5 @@
 import type { StationRepository, SyncResultDto } from '@llenoporfa/common';
-import { MitecoClient } from '../../../infrastructure/external/MitecoClient';
+import { MitecoClient } from '../../../infrastructure/external/MitecoClient.js';
 
 export class SyncGasStationsUseCase {
   constructor(

@@ -6,7 +6,7 @@ import type {
   StationType,
   FuelPrices,
 } from '@llenoporfa/common';
-import { getDbClient } from './client';
+import { getDbClient } from './client.js';
 
 export class LibSqlStationRepository implements StationRepository {
   constructor(private readonly client: Client = getDbClient()) {}

@@ -1,5 +1,5 @@
 import type { MarketRepository, SyncResultDto } from '@llenoporfa/common';
-import { OilPriceClient } from '../../../infrastructure/external/OilPriceClient';
+import { OilPriceClient } from '../../../infrastructure/external/OilPriceClient.js';
 
 export class SyncCrudeOilPriceUseCase {
   constructor(

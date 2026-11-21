@@ -1,9 +1,9 @@
-import { initDatabase } from '../src/infrastructure/database/client';
+import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetFilters,
   handleGetStationHistory,
   handleGetStations,
-} from '../src/presentation/controllers/stationsController';
+} from '../src/presentation/controllers/stationsController.js';
 
 export default async function handler(req: Request) {
   await initDatabase();

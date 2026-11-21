@@ -1,4 +1,4 @@
-import { corsHeaders } from './stationsController';
+import { corsHeaders } from './stationsController.js';
 
 // Local in-memory or graceful handler for telemetry in local dev
 interface TelemetryEvent {

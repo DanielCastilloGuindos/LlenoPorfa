@@ -5,10 +5,10 @@ import {
   IVA_RATE,
   LITERS_PER_BARREL,
 } from '@llenoporfa/common';
-import { GetMarketHistoryUseCase } from '../../application/use-cases/market/GetMarketHistoryUseCase';
-import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository';
-import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository';
-import { corsHeaders } from './stationsController';
+import { GetMarketHistoryUseCase } from '../../application/use-cases/market/GetMarketHistoryUseCase.js';
+import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository.js';
+import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository.js';
+import { corsHeaders } from './stationsController.js';
 
 const marketRepo = new LibSqlMarketRepository();
 const stationRepo = new LibSqlStationRepository();

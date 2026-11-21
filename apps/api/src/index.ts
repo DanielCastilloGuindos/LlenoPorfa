@@ -1,20 +1,20 @@
 import { serve } from 'bun';
-import { initDatabase } from './infrastructure/database/client';
-import { LibSqlStationRepository } from './infrastructure/database/LibSqlStationRepository';
-import { startInternalScheduler } from './infrastructure/scheduler/scheduler';
+import { initDatabase } from './infrastructure/database/client.js';
+import { LibSqlStationRepository } from './infrastructure/database/LibSqlStationRepository.js';
+import { startInternalScheduler } from './infrastructure/scheduler/scheduler.js';
 import {
   handleGetFilters,
   handleGetStationHistory,
   handleGetStations,
-} from './presentation/controllers/stationsController';
+} from './presentation/controllers/stationsController.js';
 import {
   handleGetCrudeHistory,
   handleGetMarket,
-} from './presentation/controllers/marketController';
+} from './presentation/controllers/marketController.js';
 import {
   handleRegisterEvent,
   handleRegisterStats,
-} from './presentation/controllers/registerController';
+} from './presentation/controllers/registerController.js';
 import {
   handleGetSyncStatus,
   handleSyncAll,
@@ -22,7 +22,7 @@ import {
   handleSyncElectric,
   handleSyncGas,
   handleSyncHydrogen,
-} from './presentation/controllers/syncController';
+} from './presentation/controllers/syncController.js';
 
 const PORT = Number(process.env.PORT) || 3002;
 

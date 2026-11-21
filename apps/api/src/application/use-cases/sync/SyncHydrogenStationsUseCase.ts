@@ -1,5 +1,5 @@
 import type { StationRepository, SyncResultDto } from '@llenoporfa/common';
-import { OsmOverpassClient } from '../../../infrastructure/external/OsmOverpassClient';
+import { OsmOverpassClient } from '../../../infrastructure/external/OsmOverpassClient.js';
 
 export class SyncHydrogenStationsUseCase {
   constructor(

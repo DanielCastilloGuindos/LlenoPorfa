@@ -24,6 +24,8 @@ describe('Vercel API entrypoints', () => {
       expect(source).not.toMatch(/require\s*\(|module\.exports/);
       expect(source).toMatch(/import\s/);
       expect(source).toMatch(/export default/);
+      const relativeSpecifiers = [...source.matchAll(/from\s+['"](\.\.?\/[^'"]+)['"]/g)].map((match) => match[1]);
+      expect(relativeSpecifiers.every((specifier) => specifier.endsWith('.js'))).toBe(true);
     }
   });
 });

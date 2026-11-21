@@ -1,4 +1,4 @@
-import { initDatabase } from '../src/infrastructure/database/client';
+import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetSyncStatus,
   handleSyncAll,
@@ -6,7 +6,7 @@ import {
   handleSyncElectric,
   handleSyncGas,
   handleSyncHydrogen,
-} from '../src/presentation/controllers/syncController';
+} from '../src/presentation/controllers/syncController.js';
 
 export default async function handler(req: Request) {
   await initDatabase();

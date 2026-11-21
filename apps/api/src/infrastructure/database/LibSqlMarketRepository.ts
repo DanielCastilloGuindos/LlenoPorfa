@@ -1,6 +1,6 @@
 import type { Client } from '@libsql/client';
 import type { CrudeOilDailyPrice, MarketRepository } from '@llenoporfa/common';
-import { getDbClient } from './client';
+import { getDbClient } from './client.js';
 
 export class LibSqlMarketRepository implements MarketRepository {
   constructor(private readonly client: Client = getDbClient()) {}
