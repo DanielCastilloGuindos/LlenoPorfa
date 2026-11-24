@@ -12,7 +12,7 @@ describe('Vercel API entrypoints', () => {
 
     try {
       const module = await import('../api/filters.ts');
-      const response = await module.default();
+      const response = await module.default(new Request('https://example.test/api/filters'));
 
       expect(response.status).toBe(200);
       expect((await response.json()).fuels.length).toBeGreaterThan(0);
@@ -33,7 +33,10 @@ describe('Vercel API entrypoints', () => {
     expect(typeof module.default).toBe('function');
 
     process.env.SQLITE_PATH = `/tmp/opencode/llenoporfa-entrypoint-${Date.now()}.db`;
-    const response = await module.default(new Request('https://example.test/api/stations?fuel=g95_e5'));
+    const response = await module.default({
+      url: '/api/stations?fuel=g95_e5',
+      headers: new Headers({ host: 'example.test' }),
+    } as Request);
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(200);
 

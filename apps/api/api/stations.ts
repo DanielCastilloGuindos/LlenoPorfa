@@ -7,7 +7,9 @@ import {
 
 export default async function handler(req: Request) {
   await initDatabase();
-  const url = new URL(req.url);
+  const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || 'https';
+  const host = req.headers.get('host') || 'localhost';
+  const url = new URL(req.url, `${protocol}://${host}`);
 
   const historyMatch = url.pathname.match(/\/api\/stations\/([^/]+)\/history/);
   const stationIdParam = url.searchParams.get('stationId');

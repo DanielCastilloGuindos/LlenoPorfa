@@ -10,7 +10,9 @@ import {
 
 export default async function handler(req: Request) {
   await initDatabase();
-  const url = new URL(req.url);
+  const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || 'https';
+  const host = req.headers.get('host') || 'localhost';
+  const url = new URL(req.url, `${protocol}://${host}`);
   const target = url.searchParams.get('target') || 'all';
 
   // Optional authorization check with CRON_SECRET for production protection
