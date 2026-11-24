@@ -4,10 +4,23 @@ import { GetStationHistoryUseCase } from '../../application/use-cases/stations/G
 import { LibSqlStationRepository } from '../../infrastructure/database/LibSqlStationRepository.js';
 import { LibSqlMarketRepository } from '../../infrastructure/database/LibSqlMarketRepository.js';
 
-const stationRepo = new LibSqlStationRepository();
-const marketRepo = new LibSqlMarketRepository();
-const getStationsUseCase = new GetStationsUseCase(stationRepo);
-const getStationHistoryUseCase = new GetStationHistoryUseCase(stationRepo, marketRepo);
+let stationServices: {
+  getStationsUseCase: GetStationsUseCase;
+  getStationHistoryUseCase: GetStationHistoryUseCase;
+} | null = null;
+
+function getStationServices() {
+  if (stationServices) return stationServices;
+
+  const stationRepo = new LibSqlStationRepository();
+  const marketRepo = new LibSqlMarketRepository();
+  stationServices = {
+    getStationsUseCase: new GetStationsUseCase(stationRepo),
+    getStationHistoryUseCase: new GetStationHistoryUseCase(stationRepo, marketRepo),
+  };
+
+  return stationServices;
+}
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +30,7 @@ export const corsHeaders = {
 };
 
 export async function handleGetStations(url: URL): Promise<Response> {
+  const { getStationsUseCase } = getStationServices();
   const lat = url.searchParams.get('lat') ? parseFloat(url.searchParams.get('lat')!) : undefined;
   const lng = url.searchParams.get('lng') ? parseFloat(url.searchParams.get('lng')!) : undefined;
   const radiusKm = url.searchParams.get('radius')
@@ -58,6 +72,7 @@ export async function handleGetStations(url: URL): Promise<Response> {
 }
 
 export async function handleGetStationHistory(stationId: string, url: URL): Promise<Response> {
+  const { getStationHistoryUseCase } = getStationServices();
   const days = url.searchParams.get('days') ? parseInt(url.searchParams.get('days')!, 10) : 30;
   const res = await getStationHistoryUseCase.execute(stationId, days);
 

@@ -1,6 +1,33 @@
 import { describe, expect, it } from 'bun:test';
 
 describe('Vercel API entrypoints', () => {
+  it('serves filters without requiring a database connection', async () => {
+    const previousVercel = process.env.VERCEL;
+    const previousTursoUrl = process.env.TURSO_DATABASE_URL;
+    const previousTursoToken = process.env.TURSO_AUTH_TOKEN;
+
+    process.env.VERCEL = '1';
+    delete process.env.TURSO_DATABASE_URL;
+    delete process.env.TURSO_AUTH_TOKEN;
+
+    try {
+      const module = await import('../api/filters.ts');
+      const response = await module.default();
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).fuels.length).toBeGreaterThan(0);
+    } finally {
+      if (previousVercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = previousVercel;
+
+      if (previousTursoUrl === undefined) delete process.env.TURSO_DATABASE_URL;
+      else process.env.TURSO_DATABASE_URL = previousTursoUrl;
+
+      if (previousTursoToken === undefined) delete process.env.TURSO_AUTH_TOKEN;
+      else process.env.TURSO_AUTH_TOKEN = previousTursoToken;
+    }
+  });
+
   it('imports the ESM stations handler and executes the Request routing path', async () => {
     const module = await import('../api/stations.ts');
     expect(typeof module.default).toBe('function');
