@@ -1,25 +1,27 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetFilters,
   handleGetStationHistory,
   handleGetStations,
 } from '../src/presentation/controllers/stationsController.js';
+import { getRequestUrl, writeWebResponse } from '../src/presentation/http/vercel.js';
 
-export default async function handler(req: Request) {
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   await initDatabase();
-  const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || 'https';
-  const host = req.headers.get('host') || 'localhost';
-  const url = new URL(req.url, `${protocol}://${host}`);
+  const url = getRequestUrl(req);
 
+  let response: Response;
   const historyMatch = url.pathname.match(/\/api\/stations\/([^/]+)\/history/);
   const stationIdParam = url.searchParams.get('stationId');
 
   if (historyMatch) {
-    return await handleGetStationHistory(historyMatch[1], url);
-  }
-  if (stationIdParam) {
-    return await handleGetStationHistory(stationIdParam, url);
+    response = await handleGetStationHistory(historyMatch[1], url);
+  } else if (stationIdParam) {
+    response = await handleGetStationHistory(stationIdParam, url);
+  } else {
+    response = await handleGetStations(url);
   }
 
-  return await handleGetStations(url);
+  await writeWebResponse(res, response);
 }

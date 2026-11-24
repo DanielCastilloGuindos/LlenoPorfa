@@ -1,18 +1,21 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetCrudeHistory,
   handleGetMarket,
 } from '../src/presentation/controllers/marketController.js';
+import { getRequestUrl, writeWebResponse } from '../src/presentation/http/vercel.js';
 
-export default async function handler(req: Request) {
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   await initDatabase();
-  const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || 'https';
-  const host = req.headers.get('host') || 'localhost';
-  const url = new URL(req.url, `${protocol}://${host}`);
+  const url = getRequestUrl(req);
 
+  let response: Response;
   if (url.pathname.includes('/crude-history') || url.searchParams.get('mode') === 'crude-history') {
-    return await handleGetCrudeHistory(url);
+    response = await handleGetCrudeHistory(url);
+  } else {
+    response = await handleGetMarket(url);
   }
 
-  return await handleGetMarket(url);
+  await writeWebResponse(res, response);
 }

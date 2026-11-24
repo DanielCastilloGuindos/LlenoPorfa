@@ -1,16 +1,14 @@
-export default function handler(_req: Request): Response {
-  return new Response(
+import type { IncomingMessage, ServerResponse } from 'node:http';
+
+export default function handler(_req: IncomingMessage, res: ServerResponse): void {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+  res.end(
     JSON.stringify({
       ok: true,
       service: 'lleno-porfa-api',
       timestamp: new Date().toISOString(),
-    }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    }
+    })
   );
 }

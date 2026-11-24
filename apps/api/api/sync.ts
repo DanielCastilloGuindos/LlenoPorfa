@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { initDatabase } from '../src/infrastructure/database/client.js';
 import {
   handleGetSyncStatus,
@@ -7,41 +8,49 @@ import {
   handleSyncGas,
   handleSyncHydrogen,
 } from '../src/presentation/controllers/syncController.js';
+import { getRequestHeader, getRequestUrl, writeWebResponse } from '../src/presentation/http/vercel.js';
 
-export default async function handler(req: Request) {
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   await initDatabase();
-  const protocol = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || 'https';
-  const host = req.headers.get('host') || 'localhost';
-  const url = new URL(req.url, `${protocol}://${host}`);
+  const url = getRequestUrl(req);
   const target = url.searchParams.get('target') || 'all';
 
   // Optional authorization check with CRON_SECRET for production protection
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
-    const authHeader = req.headers.get('authorization');
+    const authHeader = getRequestHeader(req, 'authorization');
     if (authHeader !== `Bearer ${cronSecret}` && url.searchParams.get('secret') !== cronSecret) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      await writeWebResponse(res, new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
-      });
+      }));
+      return;
     }
   }
 
+  let response: Response;
   if (url.pathname.endsWith('/status')) {
-    return await handleGetSyncStatus();
+    response = await handleGetSyncStatus();
+  } else {
+    switch (target) {
+      case 'gas':
+        response = await handleSyncGas();
+        break;
+      case 'electric':
+        response = await handleSyncElectric();
+        break;
+      case 'hydrogen':
+        response = await handleSyncHydrogen();
+        break;
+      case 'crude':
+        response = await handleSyncCrude();
+        break;
+      case 'all':
+      default:
+        response = await handleSyncAll();
+        break;
+    }
   }
 
-  switch (target) {
-    case 'gas':
-      return await handleSyncGas();
-    case 'electric':
-      return await handleSyncElectric();
-    case 'hydrogen':
-      return await handleSyncHydrogen();
-    case 'crude':
-      return await handleSyncCrude();
-    case 'all':
-    default:
-      return await handleSyncAll();
-  }
+  await writeWebResponse(res, response);
 }

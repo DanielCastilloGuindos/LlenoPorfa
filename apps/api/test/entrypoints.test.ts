@@ -1,12 +1,40 @@
 import { describe, expect, it } from 'bun:test';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+
+type ResponseRecorder = {
+  statusCode: number;
+  body: string;
+  setHeader(name: string, value: unknown): ResponseRecorder;
+  end(body?: string | Uint8Array): void;
+};
+
+function createRequest(url: string): IncomingMessage {
+  return { url, headers: { host: 'example.test' } } as IncomingMessage;
+}
+
+function createResponse(): { response: ServerResponse; recorder: ResponseRecorder } {
+  const recorder: ResponseRecorder = {
+    statusCode: 0,
+    body: '',
+    setHeader() {
+      return recorder;
+    },
+    end(body) {
+      recorder.body = body === undefined ? '' : typeof body === 'string' ? body : Buffer.from(body).toString('utf8');
+    },
+  };
+
+  return { response: recorder as unknown as ServerResponse, recorder };
+}
 
 describe('Vercel API entrypoints', () => {
   it('serves the health check without requiring a database connection', async () => {
     const module = await import('../api/health.ts');
-    const response = module.default(new Request('https://example.test/api/health'));
-    const body = await response.json();
+    const { response, recorder } = createResponse();
+    module.default(createRequest('/api/health'), response);
+    const body = JSON.parse(recorder.body);
 
-    expect(response.status).toBe(200);
+    expect(recorder.statusCode).toBe(200);
     expect(body).toMatchObject({ ok: true, service: 'lleno-porfa-api' });
   });
 
@@ -21,10 +49,12 @@ describe('Vercel API entrypoints', () => {
 
     try {
       const module = await import('../api/filters.ts');
-      const response = await module.default(new Request('https://example.test/api/filters'));
+      const { response, recorder } = createResponse();
+      await module.default(createRequest('/api/filters'), response);
+      const body = JSON.parse(recorder.body);
 
-      expect(response.status).toBe(200);
-      expect((await response.json()).fuels.length).toBeGreaterThan(0);
+      expect(recorder.statusCode).toBe(200);
+      expect(body.fuels.length).toBeGreaterThan(0);
     } finally {
       if (previousVercel === undefined) delete process.env.VERCEL;
       else process.env.VERCEL = previousVercel;
@@ -42,16 +72,13 @@ describe('Vercel API entrypoints', () => {
     expect(typeof module.default).toBe('function');
 
     process.env.SQLITE_PATH = `/tmp/opencode/llenoporfa-entrypoint-${Date.now()}.db`;
-    const response = await module.default({
-      url: '/api/stations?fuel=g95_e5',
-      headers: new Headers({ host: 'example.test' }),
-    } as Request);
-    expect(response).toBeInstanceOf(Response);
-    expect(response.status).toBe(200);
+    const { response, recorder } = createResponse();
+    await module.default(createRequest('/api/stations?fuel=g95_e5'), response);
+    expect(recorder.statusCode).toBe(200);
+    expect(JSON.parse(recorder.body).fuel).toBe('g95_e5');
 
     // The handler reaches the database only after importing successfully. This
-    // smoke test keeps the production entrypoint a real ESM module and verifies
-    // the Request contract without requiring Vercel's build runtime.
+    // smoke test keeps the production entrypoint compatible with Vercel's Node runtime.
     const source = await Bun.file(new URL('../api/stations.ts', import.meta.url)).text();
     expect(source).not.toMatch(/require\s*\(|module\.exports/);
     expect(source).toMatch(/export default/);
