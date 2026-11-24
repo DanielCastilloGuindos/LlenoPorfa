@@ -19,6 +19,15 @@ import { useStations } from '../composables/useStations';
 import { useMarket } from '../composables/useMarket';
 import { useHaptics } from '../composables/useHaptics';
 
+const props = withDefaults(
+  defineProps<{
+    onlySearch?: boolean;
+  }>(),
+  {
+    onlySearch: false,
+  }
+);
+
 const emit = defineEmits<{
   (e: 'open-save-modal'): void;
 }>();
@@ -56,8 +65,8 @@ const openSaveModal = () => {
 </script>
 
 <template>
-  <header class="search-header">
-    <div class="header-top-bar">
+  <header class="search-header" :class="{ 'search-only': props.onlySearch }">
+    <div v-if="!props.onlySearch" class="header-top-bar">
       <!-- Location Selector Pill -->
       <button class="location-pill" @click="showCityModal = true; light()">
         <MapPin :size="15" class="location-icon" />
@@ -128,7 +137,7 @@ const openSaveModal = () => {
     </div>
 
     <!-- City selection modal -->
-    <div v-if="showCityModal" class="modal-backdrop" @click.self="showCityModal = false">
+    <div v-if="!props.onlySearch && showCityModal" class="modal-backdrop" @click.self="showCityModal = false">
       <div class="modal-card">
         <div class="modal-header">
           <h3>Seleccionar Ubicación</h3>
@@ -173,6 +182,12 @@ const openSaveModal = () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  &.search-only {
+    padding: 0;
+    background: transparent;
+    gap: 0;
+  }
 }
 
 .header-top-bar {

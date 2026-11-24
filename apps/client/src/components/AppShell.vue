@@ -266,9 +266,10 @@ onMounted(async () => {
             class="split-map-container"
             :class="{ 'mobile-hidden': activeTab === 'search' }"
           >
-            <!-- Fuel Selector Controls on Mobile Map tab (Only fuels, no location or text search) -->
+            <!-- Search and filter controls on the mobile map tab -->
             <div class="map-mobile-search-controls">
-              <FilterBar :only-fuels="true" />
+              <SearchHeader :only-search="true" />
+              <FilterBar />
             </div>
 
             <div class="map-view-body">
@@ -497,6 +498,9 @@ onMounted(async () => {
       pointer-events: auto;
       background: transparent;
       border: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .map-view-body {

@@ -508,6 +508,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 6px;
 
+  @include mobile {
+    top: calc(var(--safe-top) + 148px);
+  }
+
   @include desktop {
     top: 20px;
     right: 20px;
