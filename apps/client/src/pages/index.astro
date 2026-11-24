@@ -1,6 +1,7 @@
 ---
 import AppShell from '../components/AppShell.vue';
 import '../styles/main.scss';
+import Analytics from '@vercel/analytics/astro';
 ---
 
 <!doctype html>
@@ -94,5 +95,6 @@ import '../styles/main.scss';
   </head>
   <body>
     <AppShell client:only="vue" />
+    <Analytics />
   </body>
 </html>
