@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 
 describe('Vercel API entrypoints', () => {
+  it('serves the health check without requiring a database connection', async () => {
+    const module = await import('../api/health.ts');
+    const response = module.default(new Request('https://example.test/api/health'));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ ok: true, service: 'lleno-porfa-api' });
+  });
+
   it('serves filters without requiring a database connection', async () => {
     const previousVercel = process.env.VERCEL;
     const previousTursoUrl = process.env.TURSO_DATABASE_URL;

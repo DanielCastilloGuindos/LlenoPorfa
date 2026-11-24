@@ -52,6 +52,13 @@
   "regions": ["cdg1"],
   "routes": [
     {
+      "src": "/api/health",
+      "dest": "/apps/api/api/health.ts",
+      "headers": {
+        "Cache-Control": "no-store"
+      }
+    },
+    {
       "src": "/api/stations/(.*)/history",
       "dest": "/apps/api/api/stations.ts?stationId=$1",
       "headers": {
