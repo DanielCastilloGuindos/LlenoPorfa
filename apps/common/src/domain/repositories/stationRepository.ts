@@ -1,5 +1,5 @@
-import type { Station, StationType } from '../entities/station';
-import type { StationDailyPrice } from '../entities/prices';
+import type { Station, StationType } from '../entities/station.js';
+import type { StationDailyPrice } from '../entities/prices.js';
 
 export interface StationRepository {
   save(station: Station): Promise<void>;

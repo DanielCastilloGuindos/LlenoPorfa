@@ -12,7 +12,9 @@
     "dev:all": "concurrently \"bun --watch run apps/api/src/index.ts\" \"bun --filter @llenoporfa/client dev\"",
     "dev:full": "concurrently \"bun --watch run apps/api/src/index.ts\" \"bun --filter @llenoporfa/client dev\" \"bun --filter @llenoporfa/manager dev\"",
     "build": "bun --filter @llenoporfa/client build",
-    "build:all": "bun --filter @llenoporfa/client build && bun --filter @llenoporfa/manager build",
+    "build:common": "bun --filter @llenoporfa/common build",
+    "build:all": "bun run build:common && bun --filter @llenoporfa/client build && bun --filter @llenoporfa/manager build",
+    "build:vercel": "bun run build:all",
     "test": "bun test apps/api",
     "preview": "bun --filter @llenoporfa/client preview"
   },

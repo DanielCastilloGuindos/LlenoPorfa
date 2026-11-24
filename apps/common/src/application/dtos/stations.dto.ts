@@ -6,7 +6,7 @@ import type {
   Station,
   StationType,
   DailyMarketPoint,
-} from '../../domain';
+} from '../../domain/index.js';
 
 export interface StationsQueryDto {
   lat?: number;

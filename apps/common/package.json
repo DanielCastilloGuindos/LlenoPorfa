@@ -2,15 +2,30 @@
   "name": "@llenoporfa/common",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./domain": "./src/domain/index.ts",
-    "./application": "./src/application/index.ts",
-    "./utils": "./src/utils/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./domain": {
+      "types": "./dist/domain/index.d.ts",
+      "import": "./dist/domain/index.js"
+    },
+    "./application": {
+      "types": "./dist/application/index.d.ts",
+      "import": "./dist/application/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { CrudeOilDailyPrice } from '../entities/prices';
+import type { CrudeOilDailyPrice } from '../entities/prices.js';
 
 export interface MarketRepository {
   saveCrudeDailyPrice(price: CrudeOilDailyPrice): Promise<void>;

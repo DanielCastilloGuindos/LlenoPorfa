@@ -1,1 +1,1 @@
-export * from './dtos/stations.dto';
+export * from './dtos/stations.dto.js';

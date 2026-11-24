@@ -1,4 +1,4 @@
-import type { FuelPrices } from './station';
+import type { FuelPrices } from './station.js';
 
 export interface StationDailyPrice {
   id: string;

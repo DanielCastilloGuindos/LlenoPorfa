@@ -1,3 +1,3 @@
-export * from './domain';
-export * from './application';
-export * from './utils';
+export * from './domain/index.js';
+export * from './application/index.js';
+export * from './utils/index.js';
