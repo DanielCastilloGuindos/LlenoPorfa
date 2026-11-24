@@ -269,7 +269,9 @@ onMounted(async () => {
             <!-- Search and filter controls on the mobile map tab -->
             <div class="map-mobile-search-controls">
               <SearchHeader :only-search="true" />
-              <FilterBar />
+              <div class="map-mobile-filter-controls">
+                <FilterBar />
+              </div>
             </div>
 
             <div class="map-view-body">
@@ -494,13 +496,18 @@ onMounted(async () => {
       top: calc(var(--safe-top) + 12px);
       left: 12px;
       right: 64px;
-      z-index: 400;
+      z-index: 500;
       pointer-events: auto;
       background: transparent;
       border: none;
+      padding: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+
+    .map-mobile-filter-controls {
+      width: 100%;
     }
 
     .map-view-body {

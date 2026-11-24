@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
   gap: 6px;
 
   @include mobile {
-    top: calc(var(--safe-top) + 148px);
+    top: calc(var(--safe-top) + 64px);
   }
 
   @include desktop {
