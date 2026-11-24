@@ -6,6 +6,7 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "bun --filter @llenoporfa/common build",
     "dev": "bun --filter @llenoporfa/client dev",
     "dev:manager": "bun --filter @llenoporfa/manager dev",
     "dev:api": "bun --watch run apps/api/src/index.ts",

@@ -1,4 +1,4 @@
-import type { Client } from '@libsql/client';
+import type { Client } from '@libsql/core/api';
 import type { CrudeOilDailyPrice, MarketRepository } from '@llenoporfa/common';
 import { getDbClient } from './client.js';
 

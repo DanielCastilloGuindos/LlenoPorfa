@@ -1,4 +1,5 @@
-import { createClient, type Client } from '@libsql/client';
+import { createClient } from '@libsql/client';
+import type { Client } from '@libsql/core/api';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,8 +38,9 @@ export function getDbClient(): Client {
 }
 
 export async function initDatabase(client = getDbClient()): Promise<void> {
-  if (schemaInitialization?.client === client) {
-    return schemaInitialization.promise;
+  const existingInitialization = schemaInitialization;
+  if (existingInitialization?.client === client) {
+    return existingInitialization.promise;
   }
 
   const initialization = initializeSchema(client);

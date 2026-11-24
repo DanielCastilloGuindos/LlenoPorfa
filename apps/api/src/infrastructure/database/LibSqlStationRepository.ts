@@ -1,4 +1,4 @@
-import type { Client } from '@libsql/client';
+import type { Client, Row } from '@libsql/core/api';
 import type {
   Station,
   StationDailyPrice,
@@ -166,7 +166,7 @@ export class LibSqlStationRepository implements StationRepository {
     }
 
     const res = await this.client.execute({ sql, args });
-    return res.rows.map((row) => this.mapRowToStation(row));
+    return res.rows.map((row: Row) => this.mapRowToStation(row));
   }
 
   async findAllActive(type?: StationType): Promise<Station[]> {
@@ -186,7 +186,7 @@ export class LibSqlStationRepository implements StationRepository {
     }
 
     const res = await this.client.execute({ sql, args });
-    return res.rows.map((row) => this.mapRowToStation(row));
+    return res.rows.map((row: Row) => this.mapRowToStation(row));
   }
 
   async saveDailyPrice(price: StationDailyPrice): Promise<void> {
