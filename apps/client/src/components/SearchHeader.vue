@@ -139,6 +139,8 @@ const openSaveModal = () => {
     <!-- City selection modal -->
     <div v-if="!props.onlySearch && showCityModal" class="modal-backdrop" @click.self="showCityModal = false">
       <div class="modal-card">
+        <div class="bottom-sheet-handle"></div>
+
         <div class="modal-header">
           <h3>Seleccionar Ubicación</h3>
           <button class="close-btn" @click="showCityModal = false">
@@ -413,11 +415,20 @@ const openSaveModal = () => {
   flex-direction: column;
   gap: 16px;
 
+  .bottom-sheet-handle {
+    @include desktop {
+      display: none;
+    }
+  }
+
   @include mobile {
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    max-height: 80vh;
+    border-bottom: none;
+    max-height: 85dvh;
     overflow-y: auto;
-    padding-bottom: calc(20px + var(--safe-bottom));
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 20px calc(var(--bottom-nav-height) + var(--safe-bottom) + 24px);
   }
 }
 

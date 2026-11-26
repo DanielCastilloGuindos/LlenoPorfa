@@ -1009,6 +1009,10 @@ onMounted(() => {
   gap: 18px;
   max-width: 800px;
   margin: 0 auto;
+
+  @include mobile {
+    padding-bottom: calc(36px + var(--bottom-nav-height) + var(--safe-bottom) + 72px);
+  }
 }
 
 .view-header {
@@ -1042,6 +1046,18 @@ onMounted(() => {
 
     &:hover {
       opacity: 0.9;
+    }
+  }
+
+  @include mobile {
+    .add-btn {
+      position: fixed;
+      right: 16px;
+      bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
+      z-index: 70;
+      min-height: 48px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-md);
     }
   }
 }

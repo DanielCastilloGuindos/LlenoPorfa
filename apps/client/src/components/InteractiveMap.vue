@@ -6,6 +6,7 @@ import { useGeolocation } from '../composables/useGeolocation';
 import { useStations } from '../composables/useStations';
 import { useVisitDetector } from '../composables/useVisitDetector';
 import { useHaptics } from '../composables/useHaptics';
+import { useFavorites } from '../composables/useFavorites';
 
 const props = defineProps<{
   stations: Station[];
@@ -32,12 +33,18 @@ const markerMap = new Map<string, any>();
 const { locationState, requestCurrentLocation } = useGeolocation();
 const { calculateTankSavings, fuel } = useStations();
 const { registerPendingVisit } = useVisitDetector();
+const { favorites, isFavorite } = useFavorites();
 const { light, medium } = useHaptics();
 
 // 100% Free OpenStreetMap tile URL (Token-free and API-key free)
 const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+const FAVORITE_HEART_ICON = `
+  <svg class="map-favorite-indicator" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+  </svg>
+`;
 
 interface ClusterGroup {
   isCluster: boolean;
@@ -260,16 +267,20 @@ const renderStationMarkers = () => {
       const isSelected = props.selectedStation?.id === station.id;
       const isHovered = props.hoveredStationId === station.id;
       const priceStr = station.selected_fuel_price ? station.selected_fuel_price.toFixed(3) : '---';
+      const isFavoriteStation = isFavorite(station.id);
+      const favoriteIcon = isFavoriteStation ? FAVORITE_HEART_ICON : '';
+      const markerWidth = isFavoriteStation ? 92 : 74;
 
       const customIcon = L.divIcon({
         className: 'airbnb-pin-wrapper',
         html: `
           <div class="airbnb-price-pin pin-${tier} ${isSelected || isHovered ? 'pin-selected' : ''}">
+            ${favoriteIcon}
             <span class="price-val tabular-nums">${priceStr} €</span>
           </div>
         `,
-        iconSize: [74, 28],
-        iconAnchor: [37, 14],
+        iconSize: [markerWidth, 28],
+        iconAnchor: [markerWidth / 2, 14],
       });
 
       const marker = L.marker([station.latitude, station.longitude], {
@@ -353,6 +364,12 @@ watch(
   () => {
     if (!props.selectedStation) renderStationMarkers();
   }
+);
+
+watch(
+  favorites,
+  () => renderStationMarkers(),
+  { deep: true }
 );
 
 watch(
@@ -509,7 +526,7 @@ onBeforeUnmount(() => {
   gap: 6px;
 
   @include mobile {
-    top: calc(var(--safe-top) + 64px);
+    top: calc(var(--safe-top) + 70px);
   }
 
   @include desktop {
@@ -518,10 +535,10 @@ onBeforeUnmount(() => {
   }
 
   .map-ctrl-btn {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius: var(--radius-md);
     background: var(--bg-surface);
     color: var(--text-main);

@@ -6,10 +6,10 @@ import {
   Clock,
   MapPin,
   Share2,
-  ReceiptText,
   Cylinder,
   Zap,
   Fuel,
+  Plus,
 } from 'lucide-vue-next';
 import type { Station } from '../types';
 import { useFavorites } from '../composables/useFavorites';
@@ -282,7 +282,7 @@ watch(
             class="action-btn fav-btn"
             :class="{ active: isFav }"
             @click="handleFavoriteClick"
-            aria-label="Guardar en favoritos"
+            :aria-label="isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'"
           >
             <Heart :size="20" :fill="isFav ? 'currentColor' : 'none'" />
           </button>
@@ -297,95 +297,89 @@ watch(
 
       <!-- Scrollable Sheet Content -->
       <div class="sheet-content">
-        <!-- Quick Action: Registrar repostaje aquí -->
-        <button class="record-refuel-btn" @click="handleRecordRefuel">
-          <ReceiptText :size="18" />
-          <span>Registrar repostaje aquí</span>
-        </button>
-
-      <!-- Tank savings highlight box -->
-      <div v-if="savings > 0.5" class="savings-banner">
-        <div class="savings-text">
-          <strong>Ahorro estimado: ~{{ savings.toFixed(2) }} €</strong>
-          <span>Llenando depósito de {{ settings.tankCapacityLiters }}L frente a la media de la zona</span>
-        </div>
-      </div>
-
-      <!-- All fuel prices catalog -->
-      <div class="prices-section">
-        <h4 class="section-heading">Precios actuales</h4>
-        <div class="prices-grid">
-          <div class="fuel-price-card" :class="{ empty: !station.prices.g95_e5 }">
-            <span class="fuel-name">Gasolina 95 E5</span>
-            <strong class="fuel-value">
-              {{ station.prices.g95_e5 ? station.prices.g95_e5.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.diesel_a }">
-            <span class="fuel-name">Gasóleo A</span>
-            <strong class="fuel-value">
-              {{ station.prices.diesel_a ? station.prices.diesel_a.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.g98_e5 }">
-            <span class="fuel-name">Gasolina 98 E5</span>
-            <strong class="fuel-value">
-              {{ station.prices.g98_e5 ? station.prices.g98_e5.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.diesel_premium }">
-            <span class="fuel-name">Gasóleo Premium</span>
-            <strong class="fuel-value">
-              {{ station.prices.diesel_premium ? station.prices.diesel_premium.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.glp }">
-            <span class="fuel-name">GLP</span>
-            <strong class="fuel-value">
-              {{ station.prices.glp ? station.prices.glp.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.gnc }">
-            <span class="fuel-name">GNC</span>
-            <strong class="fuel-value">
-              {{ station.prices.gnc ? station.prices.gnc.toFixed(3) + ' €' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.electric_kwh }">
-            <span class="fuel-name">Electricidad</span>
-            <strong class="fuel-value">
-              {{ station.prices.electric_kwh ? station.prices.electric_kwh.toFixed(3) + ' €/kWh' : 'No disp.' }}
-            </strong>
-          </div>
-
-          <div class="fuel-price-card" :class="{ empty: !station.prices.hydrogen_kg }">
-            <span class="fuel-name">Hidrógeno</span>
-            <strong class="fuel-value">
-              {{ station.prices.hydrogen_kg ? station.prices.hydrogen_kg.toFixed(2) + ' €/kg' : 'No disp.' }}
-            </strong>
+        <!-- Tank savings highlight box -->
+        <div v-if="savings > 0.5" class="savings-banner">
+          <div class="savings-text">
+            <strong>Ahorro estimado: ~{{ savings.toFixed(2) }} €</strong>
+            <span>Llenando depósito de {{ settings.tankCapacityLiters }}L frente a la media de la zona</span>
           </div>
         </div>
-      </div>
 
-      <!-- EV Charging Connectors -->
-      <div v-if="station.metadata?.connectors && station.metadata.connectors.length > 0" class="connectors-section">
-        <h4 class="section-heading">Puntos de recarga eléctrica</h4>
-        <div class="connectors-grid">
-          <div v-for="(conn, idx) in station.metadata.connectors" :key="idx" class="connector-badge">
-            <Zap :size="16" class="connector-icon" />
-            <div class="connector-details">
-              <span class="conn-standard">{{ conn.standard }}</span>
-              <span class="conn-power">{{ conn.powerKw }} kW &bull; {{ conn.count }} {{ conn.count === 1 ? 'punto' : 'puntos' }}</span>
+        <!-- All fuel prices catalog -->
+        <div class="prices-section">
+          <h4 class="section-heading">Precios actuales</h4>
+          <div class="prices-grid">
+            <div class="fuel-price-card" :class="{ empty: !station.prices.g95_e5 }">
+              <span class="fuel-name">Gasolina 95 E5</span>
+              <strong class="fuel-value">
+                {{ station.prices.g95_e5 ? station.prices.g95_e5.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.diesel_a }">
+              <span class="fuel-name">Gasóleo A</span>
+              <strong class="fuel-value">
+                {{ station.prices.diesel_a ? station.prices.diesel_a.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.g98_e5 }">
+              <span class="fuel-name">Gasolina 98 E5</span>
+              <strong class="fuel-value">
+                {{ station.prices.g98_e5 ? station.prices.g98_e5.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.diesel_premium }">
+              <span class="fuel-name">Gasóleo Premium</span>
+              <strong class="fuel-value">
+                {{ station.prices.diesel_premium ? station.prices.diesel_premium.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.glp }">
+              <span class="fuel-name">GLP</span>
+              <strong class="fuel-value">
+                {{ station.prices.glp ? station.prices.glp.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.gnc }">
+              <span class="fuel-name">GNC</span>
+              <strong class="fuel-value">
+                {{ station.prices.gnc ? station.prices.gnc.toFixed(3) + ' €' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.electric_kwh }">
+              <span class="fuel-name">Electricidad</span>
+              <strong class="fuel-value">
+                {{ station.prices.electric_kwh ? station.prices.electric_kwh.toFixed(3) + ' €/kWh' : 'No disp.' }}
+              </strong>
+            </div>
+
+            <div class="fuel-price-card" :class="{ empty: !station.prices.hydrogen_kg }">
+              <span class="fuel-name">Hidrógeno</span>
+              <strong class="fuel-value">
+                {{ station.prices.hydrogen_kg ? station.prices.hydrogen_kg.toFixed(2) + ' €/kg' : 'No disp.' }}
+              </strong>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- EV Charging Connectors -->
+        <div v-if="station.metadata?.connectors && station.metadata.connectors.length > 0" class="connectors-section">
+          <h4 class="section-heading">Puntos de recarga eléctrica</h4>
+          <div class="connectors-grid">
+            <div v-for="(conn, idx) in station.metadata.connectors" :key="idx" class="connector-badge">
+              <Zap :size="16" class="connector-icon" />
+              <div class="connector-details">
+                <span class="conn-standard">{{ conn.standard }}</span>
+                <span class="conn-power">{{ conn.powerKw }} kW &bull; {{ conn.count }} {{ conn.count === 1 ? 'punto' : 'puntos' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
       <!-- Hydrogen Dispensers -->
       <div v-if="station.metadata?.dispensers && station.metadata.dispensers.length > 0" class="connectors-section">
@@ -558,6 +552,16 @@ watch(
           </span>
         </div>
       </div>
+
+      <!-- Persistent action: remains visible while detail content scrolls -->
+      <button
+        class="record-refuel-btn"
+        @click="handleRecordRefuel"
+        aria-label="Registrar repostaje en esta estación"
+      >
+        <Plus :size="19" />
+        <span>Registrar repostaje aquí</span>
+      </button>
       </div>
     </div>
   </div>
@@ -593,6 +597,7 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
   touch-action: pan-y;
 
   @include desktop {
@@ -703,26 +708,31 @@ watch(
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 20px 28px;
+  padding: 16px 20px 96px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
 .record-refuel-btn {
+  position: absolute;
+  right: 16px;
+  bottom: calc(16px + var(--safe-bottom));
+  z-index: 12;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
-  padding: 13px 18px;
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
-  border-radius: var(--radius-lg);
+  width: auto;
+  padding: 12px 16px;
+  background: var(--btn-cta-bg);
+  color: var(--btn-cta-text);
+  border-radius: var(--radius-full);
   font-weight: 700;
-  font-size: 0.925rem;
+  font-size: 0.85rem;
   letter-spacing: -0.01em;
   min-height: 48px;
+  box-shadow: var(--shadow-md);
   transition: opacity var(--transition-fast);
 
   &:hover {

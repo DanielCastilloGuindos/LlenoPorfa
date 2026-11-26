@@ -8,6 +8,35 @@ import type {
 } from '@llenoporfa/common';
 import { getDbClient } from './client.js';
 
+const STATION_SELECT_COLUMNS = `
+  s.id,
+  s.external_id,
+  s.type,
+  s.name,
+  s.brand_or_operator,
+  s.address,
+  s.municipality,
+  s.province,
+  s.postal_code,
+  s.lat,
+  s.lng,
+  s.schedule,
+  s.is_open_24h,
+  s.metadata_json,
+  s.is_active,
+  s.last_synced_at,
+  p.gasoline_95,
+  p.gasoline_98,
+  p.diesel_a,
+  p.diesel_premium,
+  p.glp,
+  p.gnc,
+  p.electric_kwh_price,
+  p.hydrogen_kg_price
+`;
+
+const WRITE_BATCH_SIZE = 500;
+
 export class LibSqlStationRepository implements StationRepository {
   constructor(private readonly client: Client = getDbClient()) {}
 
@@ -60,10 +89,9 @@ export class LibSqlStationRepository implements StationRepository {
   async saveBatch(stations: Station[]): Promise<void> {
     if (stations.length === 0) return;
 
-    // Batch insert using transactions in chunks of 100
-    const chunkSize = 100;
-    for (let i = 0; i < stations.length; i += chunkSize) {
-      const chunk = stations.slice(i, i + chunkSize);
+    // Batch insert using transactions in chunks to reduce Turso round trips.
+    for (let i = 0; i < stations.length; i += WRITE_BATCH_SIZE) {
+      const chunk = stations.slice(i, i + WRITE_BATCH_SIZE);
       const statements = chunk.map((s) => ({
         sql: `
           INSERT INTO stations (
@@ -115,8 +143,7 @@ export class LibSqlStationRepository implements StationRepository {
   async findById(id: string): Promise<Station | null> {
     const res = await this.client.execute({
       sql: `
-        SELECT s.*, p.gasoline_95, p.gasoline_98, p.diesel_a, p.diesel_premium,
-               p.glp, p.gnc, p.electric_kwh_price, p.hydrogen_kg_price
+        SELECT ${STATION_SELECT_COLUMNS}
         FROM stations s
         LEFT JOIN station_daily_prices p ON s.id = p.station_id AND p.recorded_date = (
           SELECT MAX(recorded_date) FROM station_daily_prices WHERE station_id = s.id
@@ -148,8 +175,7 @@ export class LibSqlStationRepository implements StationRepository {
     type?: StationType
   ): Promise<Station[]> {
     let sql = `
-      SELECT s.*, p.gasoline_95, p.gasoline_98, p.diesel_a, p.diesel_premium,
-             p.glp, p.gnc, p.electric_kwh_price, p.hydrogen_kg_price
+      SELECT ${STATION_SELECT_COLUMNS}
       FROM stations s
       LEFT JOIN station_daily_prices p ON s.id = p.station_id AND p.recorded_date = (
         SELECT MAX(recorded_date) FROM station_daily_prices WHERE station_id = s.id
@@ -171,8 +197,7 @@ export class LibSqlStationRepository implements StationRepository {
 
   async findAllActive(type?: StationType): Promise<Station[]> {
     let sql = `
-      SELECT s.*, p.gasoline_95, p.gasoline_98, p.diesel_a, p.diesel_premium,
-             p.glp, p.gnc, p.electric_kwh_price, p.hydrogen_kg_price
+      SELECT ${STATION_SELECT_COLUMNS}
       FROM stations s
       LEFT JOIN station_daily_prices p ON s.id = p.station_id AND p.recorded_date = (
         SELECT MAX(recorded_date) FROM station_daily_prices WHERE station_id = s.id
@@ -228,9 +253,8 @@ export class LibSqlStationRepository implements StationRepository {
   async saveDailyPricesBatch(prices: StationDailyPrice[]): Promise<void> {
     if (prices.length === 0) return;
 
-    const chunkSize = 100;
-    for (let i = 0; i < prices.length; i += chunkSize) {
-      const chunk = prices.slice(i, i + chunkSize);
+    for (let i = 0; i < prices.length; i += WRITE_BATCH_SIZE) {
+      const chunk = prices.slice(i, i + WRITE_BATCH_SIZE);
       const statements = chunk.map((p) => ({
         sql: `
           INSERT INTO station_daily_prices (
