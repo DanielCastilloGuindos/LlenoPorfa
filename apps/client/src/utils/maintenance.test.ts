@@ -14,6 +14,14 @@ describe('calculateMaintenanceAlerts', () => {
     expect(calculateMaintenanceAlerts([rule({ intervalMonths: 3, intervalKm: 1000, startOdometerKm: 10000 })], [vehicle('v1')], [log('v1', 11000)], new Date('2026-05-01'))[0].reason).toBe('date_and_km');
   });
 
+  it('supports a day-based interval', () => {
+    expect(calculateMaintenanceAlerts([rule({ intervalDays: 15 })], [vehicle('v1')], [], new Date('2026-01-16'))[0].reason).toBe('date');
+  });
+
+  it('supports a custom due date', () => {
+    expect(calculateMaintenanceAlerts([rule({ customDueDate: '2026-04-15T00:00:00.000Z' })], [vehicle('v1')], [], new Date('2026-04-15'))[0].reason).toBe('date');
+  });
+
   it('uses the maximum vehicle odometer, supports multiple vehicles and ignores legacy logs', () => {
     const alerts = calculateMaintenanceAlerts(
       [rule({ intervalKm: 500 }), { ...rule({ id: 'r2', vehicleId: 'v2', intervalKm: 500 }), title: 'ITV' }],

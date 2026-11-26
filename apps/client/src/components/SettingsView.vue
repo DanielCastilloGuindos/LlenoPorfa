@@ -53,28 +53,129 @@ const { logs } = useRefuelLogs();
 const isMaintenanceModalOpen = ref(false);
 const editingRuleId = ref<string | null>(null);
 const maintenanceTitle = ref('');
+const maintenanceTitlePreset = ref<MaintenanceTitlePreset>('');
 const maintenanceVehicleId = ref('');
 const maintenanceStartDate = ref(new Date().toISOString().slice(0, 10));
 const maintenanceStartKm = ref<number | ''>('');
-const maintenanceMonths = ref<number | ''>('');
-const maintenanceKm = ref<number | ''>('');
-const maintenanceKind = ref<MaintenanceKind>('custom');
+const maintenanceDateInterval = ref<MaintenanceDateInterval>('');
+const maintenanceCustomDate = ref('');
+const maintenanceKmPreset = ref<MaintenanceKmPreset>('');
+const maintenanceKmCustom = ref<number | ''>('');
+const maintenanceKmUsesTarget = ref(false);
+const maintenanceKind = ref<MaintenanceKind>('review');
+
+const maintenanceKindOptions: { id: MaintenanceKind; label: string }[] = [
+  { id: 'change', label: 'Cambio' },
+  { id: 'review', label: 'Revisión' },
+  { id: 'itv', label: 'ITV' },
+  { id: 'tyres', label: 'Neumáticos' },
+  { id: 'brakes', label: 'Frenos' },
+  { id: 'battery', label: 'Batería' },
+  { id: 'documentation', label: 'Documentación' },
+  { id: 'other', label: 'Otro' },
+];
+
+const maintenanceTitleOptions = [
+  { id: 'oil_change', label: 'Cambio de aceite' },
+  { id: 'filter_change', label: 'Cambio de filtros' },
+  { id: 'general_review', label: 'Revisión general' },
+  { id: 'itv', label: 'ITV' },
+  { id: 'tyres', label: 'Cambio de neumáticos' },
+  { id: 'brakes', label: 'Revisión de frenos' },
+  { id: 'battery', label: 'Sustitución de batería' },
+  { id: 'timing_belt', label: 'Correa de distribución' },
+  { id: 'fluids', label: 'Revisión de niveles' },
+  { id: 'custom', label: 'Personalizado' },
+] as const;
+type MaintenanceTitlePreset = '' | (typeof maintenanceTitleOptions)[number]['id'];
+
+const maintenanceDateOptions = [
+  { id: '15_days', label: '15 días', days: 15 },
+  { id: '1_month', label: '1 mes', months: 1 },
+  { id: '3_months', label: '3 meses', months: 3 },
+  { id: '6_months', label: '6 meses', months: 6 },
+  { id: '1_year', label: '1 año', months: 12 },
+  { id: '2_years', label: '2 años', months: 24 },
+  { id: 'custom', label: 'Personalizado' },
+] as const;
+type MaintenanceDateInterval = '' | (typeof maintenanceDateOptions)[number]['id'];
+
+const maintenanceKmOptions = [
+  { id: '500', label: '+ 500 km' },
+  { id: '1000', label: '+ 1.000 km' },
+  { id: '2000', label: '+ 2.000 km' },
+  { id: '5000', label: '+ 5.000 km' },
+  { id: '10000', label: '+ 10.000 km' },
+  { id: '15000', label: '+ 15.000 km' },
+  { id: '20000', label: '+ 20.000 km' },
+  { id: '30000', label: '+ 30.000 km' },
+  { id: '50000', label: '+ 50.000 km' },
+  { id: 'custom', label: 'Personalizado' },
+] as const;
+type MaintenanceKmPreset = '' | (typeof maintenanceKmOptions)[number]['id'];
+
+const normalizeMaintenanceKind = (kind?: MaintenanceKind): MaintenanceKind => {
+  if (kind === 'oil') return 'change';
+  if (kind === 'inspection') return 'review';
+  if (kind === 'custom') return 'other';
+  return maintenanceKindOptions.some((option) => option.id === kind) ? kind : 'review';
+};
+
+const handleMaintenanceTitleChange = () => {
+  const option = maintenanceTitleOptions.find((item) => item.id === maintenanceTitlePreset.value);
+  maintenanceTitle.value = option?.id === 'custom' ? '' : option?.label || '';
+};
+
+const handleMaintenanceKmChange = () => {
+  if (maintenanceKmPreset.value !== 'custom') {
+    maintenanceKmCustom.value = '';
+    maintenanceKmUsesTarget.value = false;
+  }
+};
+
+const handleMaintenanceKmCustomInput = () => {
+  maintenanceKmUsesTarget.value = false;
+};
 
 const openMaintenance = (vehicle?: Vehicle, existing?: MaintenanceRule) => {
   editingRuleId.value = existing?.id || null;
   maintenanceTitle.value = existing?.title || '';
+  const titleOption = maintenanceTitleOptions.find((item) => item.id !== 'custom' && item.label === existing?.title);
+  maintenanceTitlePreset.value = titleOption?.id || (existing ? 'custom' : '');
   maintenanceVehicleId.value = existing?.vehicleId || vehicle?.id || activeVehicle.value?.id || vehicles.value[0]?.id || '';
   maintenanceStartDate.value = existing?.startDate?.slice(0, 10) || new Date().toISOString().slice(0, 10);
   const latestKm = logs.value.filter((log) => log.vehicleId === maintenanceVehicleId.value && typeof log.odometerKm === 'number').reduce((max, log) => Math.max(max, log.odometerKm as number), 0);
   maintenanceStartKm.value = existing?.startOdometerKm ?? (latestKm || '');
-  maintenanceMonths.value = existing?.intervalMonths ?? '';
-  maintenanceKm.value = existing?.targetOdometerKm ?? existing?.intervalKm ?? '';
-  maintenanceKind.value = existing?.kind || 'custom';
+  const dateOption = maintenanceDateOptions.find(
+    (option) => option.id !== 'custom' && (option.days === existing?.intervalDays || option.months === existing?.intervalMonths)
+  );
+  maintenanceDateInterval.value = existing?.customDueDate ? 'custom' : dateOption?.id || '';
+  maintenanceCustomDate.value = existing?.customDueDate?.slice(0, 10) || '';
+  const kmOption = maintenanceKmOptions.find((option) => Number(option.id) === existing?.intervalKm);
+  maintenanceKmUsesTarget.value = existing?.targetOdometerKm != null && existing?.intervalKm == null;
+  maintenanceKmPreset.value = kmOption?.id || (existing?.intervalKm != null || maintenanceKmUsesTarget.value ? 'custom' : '');
+  maintenanceKmCustom.value = maintenanceKmPreset.value === 'custom'
+    ? existing?.targetOdometerKm ?? existing?.intervalKm ?? ''
+    : '';
+  maintenanceKind.value = normalizeMaintenanceKind(existing?.kind);
   isMaintenanceModalOpen.value = true;
 };
+
 const handleSaveMaintenance = () => {
   if (!maintenanceTitle.value.trim() || !maintenanceVehicleId.value) return;
-  const existing = alerts.value.find((alert) => alert.rule.id === editingRuleId.value)?.rule;
+  const existing = vehicles.value
+    .flatMap((item) => item.maintenanceRules || [])
+    .find((rule) => rule.id === editingRuleId.value);
+  const selectedDateOption = maintenanceDateOptions.find((option) => option.id === maintenanceDateInterval.value);
+  const customDueDate = maintenanceDateInterval.value === 'custom' && maintenanceCustomDate.value
+    ? new Date(`${maintenanceCustomDate.value}T00:00:00`)
+    : undefined;
+  if (maintenanceDateInterval.value === 'custom' && (!customDueDate || Number.isNaN(customDueDate.getTime()))) return;
+
+  const selectedKm = maintenanceKmPreset.value === 'custom'
+    ? maintenanceKmCustom.value === '' ? undefined : Number(maintenanceKmCustom.value)
+    : maintenanceKmPreset.value ? Number(maintenanceKmPreset.value) : undefined;
+  const preservesTargetOdometer = maintenanceKmUsesTarget.value && existing?.targetOdometerKm != null;
   const rule: MaintenanceRule = {
     ...(existing || {}),
     id: editingRuleId.value || `maint_${Date.now()}`,
@@ -83,9 +184,12 @@ const handleSaveMaintenance = () => {
     kind: maintenanceKind.value,
     startDate: new Date(`${maintenanceStartDate.value}T00:00:00`).toISOString(),
     startOdometerKm: maintenanceStartKm.value === '' ? undefined : Number(maintenanceStartKm.value),
-    intervalMonths: maintenanceMonths.value === '' ? undefined : Number(maintenanceMonths.value),
-    intervalKm: maintenanceKm.value === '' ? undefined : Number(maintenanceKm.value),
-    enabled: true,
+    intervalDays: selectedDateOption?.days,
+    intervalMonths: selectedDateOption?.months,
+    customDueDate: customDueDate?.toISOString(),
+    intervalKm: preservesTargetOdometer ? undefined : selectedKm,
+    targetOdometerKm: preservesTargetOdometer ? selectedKm : undefined,
+    enabled: existing?.enabled ?? true,
   };
   saveRule(rule);
   isMaintenanceModalOpen.value = false;
@@ -611,16 +715,92 @@ const handleInstallPwa = async () => {
     <Teleport to="body">
       <div v-if="isMaintenanceModalOpen" class="modal-backdrop" @click.self="isMaintenanceModalOpen = false">
         <div class="detail-sheet vehicle-sheet">
-          <div class="bottom-sheet-handle"></div>
-          <div class="sheet-header"><div class="header-main"><div class="brand-row"><Wrench :size="18" class="text-primary" /><h3 class="sheet-title">{{ editingRuleId ? 'Editar mantenimiento' : 'Nueva regla de mantenimiento' }}</h3></div><p class="sheet-subtitle">Se avisa cuando vence la fecha o el kilometraje.</p></div><button class="action-btn close-btn" @click="isMaintenanceModalOpen = false" aria-label="Cerrar"><X :size="18" /></button></div>
-          <div class="sheet-content"><form class="vehicle-form" @submit.prevent="handleSaveMaintenance">
-            <div class="form-group"><label class="field-label" for="maintenance-title">Título</label><input id="maintenance-title" v-model="maintenanceTitle" required class="form-input" placeholder="Ej. Cambio de aceite" /></div>
-            <div class="form-group"><label class="field-label" for="maintenance-vehicle">Vehículo</label><select id="maintenance-vehicle" v-model="maintenanceVehicleId" required class="form-select"><option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.alias }}</option></select></div>
-            <div class="form-row"><div class="form-group flex-1"><label class="field-label" for="maintenance-start">Fecha inicial</label><input id="maintenance-start" v-model="maintenanceStartDate" type="date" required class="form-input" /></div><div class="form-group flex-1"><label class="field-label" for="maintenance-start-km">Km inicial</label><input id="maintenance-start-km" v-model.number="maintenanceStartKm" type="number" min="0" class="form-input" placeholder="Último registrado" /></div></div>
-            <div class="form-row"><div class="form-group flex-1"><label class="field-label" for="maintenance-months">Intervalo (meses)</label><input id="maintenance-months" v-model.number="maintenanceMonths" type="number" min="1" class="form-input" /></div><div class="form-group flex-1"><label class="field-label" for="maintenance-km">Intervalo (km / objetivo)</label><input id="maintenance-km" v-model.number="maintenanceKm" type="number" min="1" class="form-input" /></div></div>
-            <div class="form-group"><label class="field-label" for="maintenance-kind">Tipo</label><select id="maintenance-kind" v-model="maintenanceKind" class="form-select"><option value="oil">Aceite / cambio</option><option value="inspection">ITV / revisión</option><option value="tyres">Neumáticos</option><option value="custom">Personalizado</option></select></div>
-            <div class="form-actions"><button type="button" class="btn-secondary" @click="isMaintenanceModalOpen = false">Cancelar</button><button type="submit" class="btn-primary"><Check :size="16" /> Guardar</button></div>
-          </form></div>
+           <div class="bottom-sheet-handle"></div>
+           <div class="sheet-header"><div class="header-main"><div class="brand-row"><Wrench :size="18" class="text-primary" /><h3 class="sheet-title">{{ editingRuleId ? 'Editar mantenimiento' : 'Nueva regla de mantenimiento' }}</h3></div><p class="sheet-subtitle">Se avisa cuando vence la fecha o el kilometraje.</p></div><button class="action-btn close-btn" @click="isMaintenanceModalOpen = false" aria-label="Cerrar"><X :size="18" /></button></div>
+           <div class="sheet-content"><form class="vehicle-form" @submit.prevent="handleSaveMaintenance">
+             <div class="form-group">
+               <label class="field-label" for="maintenance-kind">Tipo</label>
+               <select id="maintenance-kind" v-model="maintenanceKind" required class="form-select">
+                 <option v-for="option in maintenanceKindOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
+               </select>
+             </div>
+
+             <div class="form-group">
+               <label class="field-label" for="maintenance-title-select">Título</label>
+               <select
+                 id="maintenance-title-select"
+                 v-model="maintenanceTitlePreset"
+                 required
+                 class="form-select"
+                 @change="handleMaintenanceTitleChange"
+               >
+                 <option disabled value="">Selecciona un título</option>
+                 <option v-for="option in maintenanceTitleOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
+               </select>
+               <input
+                 v-if="maintenanceTitlePreset === 'custom'"
+                 id="maintenance-title"
+                 v-model="maintenanceTitle"
+                 required
+                 class="form-input"
+                 placeholder="Escribe el título"
+               />
+             </div>
+
+             <div class="form-group">
+               <label class="field-label" for="maintenance-vehicle">Vehículo</label>
+               <select id="maintenance-vehicle" v-model="maintenanceVehicleId" required class="form-select">
+                 <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.alias }}</option>
+               </select>
+             </div>
+
+             <div class="form-row">
+               <div class="form-group flex-1">
+                 <label class="field-label" for="maintenance-start">Fecha inicial</label>
+                 <input id="maintenance-start" v-model="maintenanceStartDate" type="date" required class="form-input" />
+               </div>
+               <div class="form-group flex-1">
+                 <label class="field-label" for="maintenance-start-km">Km inicial</label>
+                 <input id="maintenance-start-km" v-model.number="maintenanceStartKm" type="number" min="0" class="form-input" placeholder="Último registrado" />
+               </div>
+             </div>
+
+             <div class="form-group">
+               <label class="field-label" for="maintenance-date-interval">Aviso por fecha</label>
+               <select id="maintenance-date-interval" v-model="maintenanceDateInterval" class="form-select">
+                 <option value="">Sin aviso por fecha</option>
+                 <option v-for="option in maintenanceDateOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
+               </select>
+               <input
+                 v-if="maintenanceDateInterval === 'custom'"
+                 v-model="maintenanceCustomDate"
+                 type="date"
+                 required
+                 class="form-input"
+                 aria-label="Fecha personalizada de aviso"
+               />
+             </div>
+
+             <div class="form-group">
+               <label class="field-label" for="maintenance-km">Aviso por kilometraje</label>
+               <select id="maintenance-km" v-model="maintenanceKmPreset" class="form-select" @change="handleMaintenanceKmChange">
+                 <option value="">Sin aviso por kilometraje</option>
+                 <option v-for="option in maintenanceKmOptions" :key="option.id" :value="option.id">{{ option.label }}</option>
+               </select>
+               <input
+                 v-if="maintenanceKmPreset === 'custom'"
+                 v-model.number="maintenanceKmCustom"
+                 type="number"
+                 min="1"
+                 class="form-input"
+                 placeholder="Kilómetros adicionales"
+                 aria-label="Kilómetros personalizados"
+                 @input="handleMaintenanceKmCustomInput"
+               />
+             </div>
+
+             <div class="form-actions"><button type="button" class="btn-secondary" @click="isMaintenanceModalOpen = false">Cancelar</button><button type="submit" class="btn-primary"><Check :size="16" /> Guardar</button></div>
+           </form></div>
         </div>
       </div>
     </Teleport>

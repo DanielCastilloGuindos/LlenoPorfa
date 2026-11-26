@@ -101,7 +101,19 @@ export interface Vehicle {
   maintenanceRules?: MaintenanceRule[];
 }
 
-export type MaintenanceKind = 'oil' | 'inspection' | 'tyres' | 'custom';
+export type MaintenanceKind =
+  | 'change'
+  | 'review'
+  | 'itv'
+  | 'tyres'
+  | 'brakes'
+  | 'battery'
+  | 'documentation'
+  | 'other'
+  // Legacy values kept so existing rules remain type-safe while they migrate.
+  | 'oil'
+  | 'inspection'
+  | 'custom';
 
 export interface MaintenanceRule {
   id: string;
@@ -110,9 +122,11 @@ export interface MaintenanceRule {
   kind?: MaintenanceKind;
   startDate?: string;
   startOdometerKm?: number | null;
+  intervalDays?: number | null;
   intervalMonths?: number | null;
   intervalKm?: number | null;
   targetOdometerKm?: number | null;
+  customDueDate?: string;
   enabled?: boolean;
   completedAt?: string;
   completedOdometerKm?: number | null;

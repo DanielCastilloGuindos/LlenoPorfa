@@ -17,6 +17,13 @@ function addMonths(date: string, months: number): string | undefined {
   return source.toISOString();
 }
 
+function addDays(date: string, days: number): string | undefined {
+  const source = new Date(date);
+  if (Number.isNaN(source.getTime())) return undefined;
+  source.setDate(source.getDate() + days);
+  return source.toISOString();
+}
+
 function maxOdometer(logs: RefuelLog[], vehicleId: string): number | undefined {
   const values = logs
     .filter((log) => log.vehicleId === vehicleId && typeof log.odometerKm === 'number' && log.odometerKm >= 0)
@@ -41,7 +48,9 @@ export function calculateMaintenanceAlerts(
     const startDate = rule.startDate || now.toISOString();
     const startKm = typeof rule.startOdometerKm === 'number' ? rule.startOdometerKm : maxOdometer(logs, rule.vehicleId);
     const currentKm = maxOdometer(logs, rule.vehicleId);
-    const dueDate = rule.intervalMonths && rule.intervalMonths > 0 ? addMonths(startDate, rule.intervalMonths) : undefined;
+    const dueDate = rule.customDueDate
+      || (rule.intervalDays && rule.intervalDays > 0 ? addDays(startDate, rule.intervalDays) : undefined)
+      || (rule.intervalMonths && rule.intervalMonths > 0 ? addMonths(startDate, rule.intervalMonths) : undefined);
     const dueOdometerKm =
       typeof rule.targetOdometerKm === 'number'
         ? rule.targetOdometerKm
