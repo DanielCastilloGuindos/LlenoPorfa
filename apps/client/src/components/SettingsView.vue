@@ -33,6 +33,7 @@ import { useHaptics } from '../composables/useHaptics';
 import type { FuelId, MaintenanceKind, MaintenanceRule, Vehicle } from '../types';
 import { useMaintenance } from '../composables/useMaintenance';
 import { useRefuelLogs } from '../composables/useRefuelLogs';
+import { formatKilometers, parseKilometers } from '../utils/numberFormat';
 
 const {
   settings,
@@ -133,7 +134,12 @@ const handleMaintenanceKmChange = () => {
   }
 };
 
-const handleMaintenanceKmCustomInput = () => {
+const handleMaintenanceStartKmInput = (event: Event) => {
+  maintenanceStartKm.value = parseKilometers((event.target as HTMLInputElement).value);
+};
+
+const handleMaintenanceKmCustomValueInput = (event: Event) => {
+  maintenanceKmCustom.value = parseKilometers((event.target as HTMLInputElement).value);
   maintenanceKmUsesTarget.value = false;
 };
 
@@ -761,7 +767,7 @@ const handleInstallPwa = async () => {
                </div>
                <div class="form-group flex-1">
                  <label class="field-label" for="maintenance-start-km">Km inicial</label>
-                 <input id="maintenance-start-km" v-model.number="maintenanceStartKm" type="number" min="0" class="form-input" placeholder="Último registrado" />
+                 <input id="maintenance-start-km" :value="formatKilometers(maintenanceStartKm)" type="text" inputmode="numeric" class="form-input" placeholder="Último registrado" @input="handleMaintenanceStartKmInput" />
                </div>
              </div>
 
@@ -789,13 +795,13 @@ const handleInstallPwa = async () => {
                </select>
                <input
                  v-if="maintenanceKmPreset === 'custom'"
-                 v-model.number="maintenanceKmCustom"
-                 type="number"
-                 min="1"
+                 :value="formatKilometers(maintenanceKmCustom)"
+                 type="text"
+                 inputmode="numeric"
                  class="form-input"
                  placeholder="Kilómetros adicionales"
                  aria-label="Kilómetros personalizados"
-                 @input="handleMaintenanceKmCustomInput"
+                 @input="handleMaintenanceKmCustomValueInput"
                />
              </div>
 

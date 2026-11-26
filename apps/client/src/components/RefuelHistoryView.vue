@@ -31,6 +31,7 @@ import { useFavorites } from '../composables/useFavorites';
 import { useTelemetry } from '../composables/useTelemetry';
 import { useMaintenance } from '../composables/useMaintenance';
 import gsap from 'gsap';
+import { formatKilometers, parseKilometers } from '../utils/numberFormat';
 
 const { logs, stats, activePrefill, addLog, updateLog, deleteLog, clearPrefill } = useRefuelLogs();
 const { settings, vehicles, activeVehicle } = useSettings();
@@ -154,6 +155,10 @@ const handleReceiptFile = (e: Event) => {
 
 const removeReceiptImage = () => {
   receiptImage.value = null;
+};
+
+const handleOdometerInput = (event: Event) => {
+  odometerKm.value = parseKilometers((event.target as HTMLInputElement).value);
 };
 
 // Helper to get current ISO date formatted for datetime-local input
@@ -748,11 +753,12 @@ onMounted(() => {
                   <div class="input-icon-wrap">
                     <Gauge :size="16" class="field-icon" />
                     <input
-                      v-model.number="odometerKm"
-                      type="number"
-                      step="1"
-                      placeholder="Ej. 124500"
+                      :value="formatKilometers(odometerKm)"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="Ej. 124.500"
                       class="form-input"
+                      @input="handleOdometerInput"
                     />
                   </div>
                 </div>

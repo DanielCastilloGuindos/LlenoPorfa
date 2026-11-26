@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
 .mini-map-legend {
   position: absolute;
   bottom: 8px;
-  right: 8px;
+  left: 8px;
   z-index: 400;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -217,7 +217,10 @@ onBeforeUnmount(() => {
   padding: 4px 10px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
+  max-width: calc(100% - 16px);
   font-size: 0.7rem;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
@@ -226,6 +229,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     gap: 5px;
+    white-space: nowrap;
   }
 
   .user-dot {
