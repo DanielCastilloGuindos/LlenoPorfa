@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue';
-import { AlertTriangle, MapPin, X, Check } from 'lucide-vue-next';
+import { AlertTriangle, MapPin, X } from 'lucide-vue-next';
 import type { TabId, Station } from '../types';
 import NavigationBar from './NavigationBar.vue';
 import SearchHeader from './SearchHeader.vue';
@@ -57,11 +57,7 @@ const { fetchMarketData } = useMarket();
 const { trackEvent } = useTelemetry();
 const { arrivalPrompt, dismissArrivalPrompt, initVisitDetector } = useVisitDetector();
 useNativeRadar();
-const { activeAlerts, completeRule } = useMaintenance();
-
-const openMaintenanceSettings = () => {
-  activeTab.value = 'settings';
-};
+const { maintenanceNotice, dismissNotice } = useMaintenance();
 
 if (typeof window !== 'undefined') {
   window.addEventListener('llenoporfa:navigate-tab', (e: any) => {
@@ -230,11 +226,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div v-if="activeAlerts.length" class="maintenance-alert-banner" role="status">
-        <div><strong>{{ activeAlerts.length }} aviso{{ activeAlerts.length === 1 ? '' : 's' }} de mantenimiento</strong><span>{{ activeAlerts[0].title }} · {{ activeAlerts[0].reason === 'km' ? 'por kilometraje' : activeAlerts[0].reason === 'date' ? 'por fecha' : 'por fecha o kilometraje' }}</span></div>
-        <div class="maintenance-alert-actions"><button @click="openMaintenanceSettings">Ver en Ajustes</button><button @click="completeRule(activeAlerts[0].rule)" aria-label="Marcar realizada"><Check :size="14" /></button></div>
-      </div>
-
       <!-- Search View / Map View Desktop Split or Mobile Views -->
       <template v-if="activeTab === 'search' || activeTab === 'map'">
         <div class="split-layout">
@@ -325,6 +316,20 @@ onMounted(async () => {
       @record-refuel="handleRecordRefuel"
       @open-on-map="handleOpenOnMap"
     />
+
+    <transition name="maintenance-notice">
+      <div v-if="maintenanceNotice" class="maintenance-notice" role="status">
+        <div class="notice-copy">
+          <strong>Mantenimiento: {{ maintenanceNotice.title }}</strong>
+          <span>
+            {{ maintenanceNotice.reason === 'date_and_km' ? 'Han llegado la fecha y los kilómetros indicados.' : maintenanceNotice.reason === 'km' ? 'Han llegado los kilómetros indicados.' : 'Ha llegado la fecha indicada.' }}
+          </span>
+        </div>
+        <button class="notice-dismiss" @click="dismissNotice" aria-label="Cerrar aviso de mantenimiento">
+          <X :size="16" />
+        </button>
+      </div>
+    </transition>
 
     <!-- Proximity Arrival Prompt Toast -->
     <transition name="toast-pop">
@@ -444,20 +449,69 @@ onMounted(async () => {
   }
 }
 
-.maintenance-alert-banner {
+.maintenance-notice {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
+  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  max-width: 480px;
+  margin: 0 auto;
   padding: 10px 14px;
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   font-size: 0.8rem;
-  z-index: 55;
-  div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  span { color: var(--text-muted); }
-  .maintenance-alert-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  button { min-height: 32px; padding: 5px 9px; border-radius: var(--radius-sm); background: var(--btn-cta-bg); color: var(--btn-cta-text); font-size: 0.75rem; font-weight: 700; }
+
+  @media (min-width: 768px) {
+    bottom: 24px;
+  }
+
+  .notice-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong {
+      color: var(--text-main);
+      @include truncate;
+    }
+
+    span {
+      color: var(--text-muted);
+    }
+  }
+
+  .notice-dismiss {
+    flex-shrink: 0;
+    min-width: 32px;
+    min-height: 32px;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+
+    &:hover {
+      color: var(--text-main);
+      background: var(--bg-surface-subtle);
+    }
+  }
+}
+
+.maintenance-notice-enter-active,
+.maintenance-notice-leave-active {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.maintenance-notice-enter-from,
+.maintenance-notice-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .split-layout {

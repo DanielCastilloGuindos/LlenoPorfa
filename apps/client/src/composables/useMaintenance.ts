@@ -8,6 +8,8 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 const lastEvaluation = ref(Date.now());
 const NOTIFICATION_KEY_PREFIX = 'llenoporfa_maintenance_scheduled_';
+const maintenanceNotice = ref<MaintenanceAlert | null>(null);
+let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
 function notificationId(ruleId: string, suffix = 'due'): number {
   return Math.max(1, Math.abs([...`${ruleId}:${suffix}`].reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0)));
@@ -19,7 +21,24 @@ export function useMaintenance() {
   const now = computed(() => new Date(lastEvaluation.value));
   const rules = computed(() => maintenanceRulesFromVehicles(vehicles.value));
   const alerts = computed(() => calculateMaintenanceAlerts(rules.value, vehicles.value, logs.value, now.value));
-  const activeAlerts = computed(() => alerts.value.filter((alert) => alert.status !== 'upcoming'));
+  const activeAlerts = computed(() => alerts.value.filter((alert) => alert.status === 'overdue'));
+
+  const dismissNotice = () => {
+    maintenanceNotice.value = null;
+    if (noticeTimer) {
+      clearTimeout(noticeTimer);
+      noticeTimer = null;
+    }
+  };
+
+  const showNotice = (alert: MaintenanceAlert) => {
+    maintenanceNotice.value = alert;
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => {
+      maintenanceNotice.value = null;
+      noticeTimer = null;
+    }, 9000);
+  };
 
   const cancelScheduledNotification = async (ruleId: string) => {
     if (!Capacitor.isNativePlatform()) return;
@@ -63,7 +82,7 @@ export function useMaintenance() {
 
   const evaluate = (scheduleFuture = true) => {
     lastEvaluation.value = Date.now();
-    notify(alerts.value.filter((alert) => alert.status !== 'upcoming'));
+    notify(alerts.value.filter((alert) => alert.status === 'overdue'));
     if (scheduleFuture) {
       alerts.value.forEach((alert) => void scheduleFutureNotification(alert.rule.id));
     }
@@ -74,21 +93,25 @@ export function useMaintenance() {
     const alert = pending[0];
     const key = `llenoporfa_maintenance_notified_${alert.rule.id}_${alert.status}`;
     if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, new Date().toISOString());
+    showNotice(alert);
     const title = `Mantenimiento: ${alert.title}`;
-    const body = alert.reason === 'km' ? 'Ha llegado el kilometraje indicado.' : 'Ha llegado la fecha indicada.';
+    const body = alert.reason === 'date_and_km'
+      ? 'Ha llegado la fecha y el kilometraje indicados.'
+      : alert.reason === 'km'
+        ? 'Ha llegado el kilometraje indicado.'
+        : 'Ha llegado la fecha indicada.';
     try {
       if (Capacitor.isNativePlatform()) {
         const permission = await LocalNotifications.checkPermissions();
         if (permission.display === 'granted') {
-           const id = notificationId(alert.rule.id, 'now');
-           await LocalNotifications.cancel({ notifications: [{ id }] });
-           await LocalNotifications.schedule({ notifications: [{ id, title, body, extra: { type: 'maintenance', ruleId: alert.rule.id } }] });
-           localStorage.setItem(key, new Date().toISOString());
-         }
-       } else if ('Notification' in window && Notification.permission === 'granted') {
-         new Notification(title, { body });
-         localStorage.setItem(key, new Date().toISOString());
-      }
+            const id = notificationId(alert.rule.id, 'now');
+            await LocalNotifications.cancel({ notifications: [{ id }] });
+            await LocalNotifications.schedule({ notifications: [{ id, title, body, extra: { type: 'maintenance', ruleId: alert.rule.id } }] });
+          }
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, { body });
+       }
     } catch (error) {
       console.warn('No se pudo programar el aviso de mantenimiento', error);
     }
@@ -122,5 +145,16 @@ export function useMaintenance() {
   onUnmounted(() => {
     if (typeof window !== 'undefined') window.removeEventListener('focus', handleFocus);
   });
-  return { rules, alerts, activeAlerts, evaluate, saveRule, deleteRule, completeRule, snoozeRule };
+  return {
+    rules,
+    alerts,
+    activeAlerts,
+    maintenanceNotice,
+    dismissNotice,
+    evaluate,
+    saveRule,
+    deleteRule,
+    completeRule,
+    snoozeRule,
+  };
 }
